@@ -1,8 +1,8 @@
 # OrbitQueue v2 Project Context
 
-> Comprehensive repository context for OrbitQueue v2, updated from baseline
-> commit `1f943660fa76e866555a5cad312efe4035f51c44` on the
-> `v1-parity-migration` branch and audited on 2026-06-22.
+> Comprehensive repository context for OrbitQueue v2, including the parity
+> migration merged into `main` at commit
+> `88b87f08a4fe749a30077c599de22c1f6d54e5a4`, audited on 2026-06-22.
 
 ## 1. Document Purpose and Evidence Model
 
@@ -98,8 +98,9 @@ OrbitQueue prototype. It does not preserve unsafe source or API compatibility.
 | GitHub repository | `https://github.com/suhaasgaddala/orbitqueue-v2` |
 | Visibility | Public |
 | Default branch | `main` |
-| Migration baseline | `1f943660fa76e866555a5cad312efe4035f51c44` |
-| Active migration branch | `v1-parity-migration` |
+| Package baseline | `1f943660fa76e866555a5cad312efe4035f51c44` |
+| Parity migration commit | `88b87f08a4fe749a30077c599de22c1f6d54e5a4` |
+| Active branch | `main` |
 | Project version | `2.0.0` |
 | License file | MIT, copyright 2026 OrbitQueue contributors |
 | Tags | None |
@@ -109,13 +110,14 @@ OrbitQueue prototype. It does not preserve unsafe source or API compatibility.
 | Required language | C++20 |
 | Minimum CMake | 3.20 |
 
-The repository history currently has two commits:
+The repository history through the parity migration has three commits:
 
 1. `42b2733` - `Initial OrbitQueue v2 foundation`
 2. `1f94366` - `Add installable CMake package`
+3. `88b87f0` - `Complete v1 parity migration`
 
-The parity migration is the next focused milestone and is described in
-`docs/v1_parity_audit.md`.
+The parity migration is described in `docs/v1_parity_audit.md`; final retirement
+gates are tracked in `docs/v1_deletion_checklist.md`.
 
 The tracked MIT license exists even though GitHub's repository metadata did not
 yet report a detected SPDX license during the 2026-06-22 audit.
@@ -141,6 +143,7 @@ orbitqueue-v2/
 |-- docs/
 |   |-- architecture.md                    High-level implementation rationale
 |   |-- benchmarking.md                    Metric semantics and benchmark limits
+|   |-- v1_deletion_checklist.md           Final manual retirement gates
 |   |-- legacy/
 |   |   |-- LICENSE.v1                     Original artifact attribution
 |   |   |-- README.md                      Historical labels and caveats
