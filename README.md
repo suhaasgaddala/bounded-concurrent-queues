@@ -8,6 +8,14 @@ OrbitQueue v2 is an experimental foundation for studying bounded queue
 contracts. It is not a production-readiness claim, a formal verification, or
 evidence that any implementation is the fastest available.
 
+It is the supported successor to the original OrbitQueue prototype. V2
+preserves the useful SPSC, multicast, blocking-queue, and benchmark concepts
+while replacing unsafe raw APIs, ambiguous delivery semantics, machine-specific
+build assumptions, and unsupported performance claims.
+
+See [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) for the exhaustive repository,
+API, validation, risk, and roadmap snapshot.
+
 ## Queue types
 
 - `BlockingQueue<T>`: bounded mutex-based FIFO with close and drain behavior.
@@ -36,6 +44,7 @@ Useful options:
 ```sh
 -DORBITQUEUE_BUILD_TESTS=ON
 -DORBITQUEUE_BUILD_BENCHMARKS=ON
+-DORBITQUEUE_ENABLE_BOOST_BENCHMARKS=OFF
 -DORBITQUEUE_ENABLE_WARNINGS=ON
 -DORBITQUEUE_ENABLE_SANITIZERS=ON
 -DORBITQUEUE_SANITIZERS=address,undefined
@@ -71,8 +80,30 @@ that validates this workflow.
 ```
 
 The optional argument is duration in milliseconds. Each queue emits one JSON
-line. SPSC unique pops and multicast aggregate reads have different meanings
-and must not be ranked as equivalent work. See [docs/benchmarking.md](docs/benchmarking.md).
+line per scenario. The default run includes SPSC with one consumer plus
+multicast and blocking work-sharing scenarios with 1, 3, and 10 consumers.
+SPSC is never run with multiple consumers because that violates its contract.
+
+An optional Boost.Lockfree work-sharing matrix can be enabled without making
+Boost a core dependency:
+
+```sh
+cmake -S . -B build-boost \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DORBITQUEUE_ENABLE_BOOST_BENCHMARKS=ON
+cmake --build build-boost --parallel
+./build-boost/benchmarks/orbitqueue_benchmark 1000
+```
+
+If the Boost.Lockfree header is unavailable, CMake warns and builds every
+non-Boost target and scenario normally. SPSC unique pops, blocking/Boost
+work-sharing pops, and multicast aggregate reads have different meanings and
+must not be ranked as equivalent work. See
+[docs/benchmarking.md](docs/benchmarking.md).
+
+Historical v1 context and explicitly labeled artifacts are under
+[docs/legacy](docs/legacy/README.md). The full migration disposition is in the
+[v1 parity audit](docs/v1_parity_audit.md).
 
 ## Correctness status
 

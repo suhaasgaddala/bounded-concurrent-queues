@@ -5,6 +5,20 @@ OrbitQueue v2 is a header-only C++20 library. Public headers live under
 `benchmarks`. The `orbitqueue` CMake interface target carries include paths,
 language requirements, warnings, and optional sanitizer flags to consumers.
 
+```mermaid
+flowchart LR
+    API["OrbitQueue::orbitqueue"] --> BQ["BlockingQueue<T>"]
+    API --> SPSC["SPSCQueue<N>"]
+    API --> SPMC["SPMCMulticastQueue<N>"]
+    SPSC --> FM["FixedMessage<N>"]
+    SPMC --> FM
+    TESTS["Contract and package tests"] --> API
+    BENCH["JSON benchmark matrix"] --> BQ
+    BENCH --> SPSC
+    BENCH --> SPMC
+    BOOST["Optional Boost.Lockfree baseline"] -. "OFF by default" .-> BENCH
+```
+
 Queue contracts come before optimization because concurrency results are only
 meaningful when delivery, capacity, ordering, overwrite, and ownership rules
 are defined. The result types make ordinary boundary states inspectable rather
@@ -25,3 +39,13 @@ This conservative design prevents a producer from rewriting a payload while a
 consumer reads it. Per-consumer sequence cursors identify retained messages
 and report lag when ring history has been overwritten. It is not described as
 lock-free.
+
+The benchmark layer is not part of the installed API. Its scenario-specific
+drivers preserve queue ownership contracts: SPSC always has one consumer,
+while multicast, blocking MPMC, and optional Boost work-sharing queues use one,
+three, and ten consumers. Shared benchmark helpers format results and track
+monotonic sequence ranges without retaining every observed message.
+
+Boost is discovered only when `ORBITQUEUE_ENABLE_BOOST_BENCHMARKS=ON`. Missing
+Boost headers disable those scenarios with a configure-time warning; they do
+not affect the core target, tests, installation, or normal benchmark.

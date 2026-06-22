@@ -1,12 +1,24 @@
 find_package(Threads REQUIRED)
 
-add_executable(orbitqueue_tests
+set(orbitqueue_test_sources
     test_main.cpp
     fixed_message_tests.cpp
     blocking_queue_tests.cpp
     spsc_queue_tests.cpp
     spmc_multicast_queue_tests.cpp)
+
+if(ORBITQUEUE_BUILD_BENCHMARKS)
+    list(APPEND orbitqueue_test_sources benchmark_support_tests.cpp)
+endif()
+
+add_executable(orbitqueue_tests ${orbitqueue_test_sources})
 target_link_libraries(orbitqueue_tests PRIVATE orbitqueue Threads::Threads)
+
+if(ORBITQUEUE_BUILD_BENCHMARKS)
+    target_include_directories(orbitqueue_tests PRIVATE "${PROJECT_SOURCE_DIR}/benchmarks")
+    target_compile_definitions(orbitqueue_tests PRIVATE
+        ORBITQUEUE_TEST_BENCHMARK_SUPPORT=1)
+endif()
 
 add_test(NAME orbitqueue_tests COMMAND orbitqueue_tests)
 

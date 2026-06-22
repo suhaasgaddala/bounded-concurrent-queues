@@ -7,6 +7,8 @@ include(GNUInstallDirs)
 
 option(ORBITQUEUE_BUILD_TESTS "Build OrbitQueue tests" ON)
 option(ORBITQUEUE_BUILD_BENCHMARKS "Build OrbitQueue benchmarks" ON)
+option(ORBITQUEUE_ENABLE_BOOST_BENCHMARKS
+    "Enable optional Boost.Lockfree benchmark scenarios" OFF)
 option(ORBITQUEUE_ENABLE_WARNINGS "Enable strong compiler warnings" ON)
 option(ORBITQUEUE_ENABLE_SANITIZERS "Enable compiler sanitizers" OFF)
 set(ORBITQUEUE_SANITIZERS "address,undefined" CACHE STRING
