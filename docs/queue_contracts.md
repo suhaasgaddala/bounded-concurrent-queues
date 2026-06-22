@@ -10,6 +10,26 @@ waiting. `close` wakes all waiters, rejects future pushes, and preserves queued
 items for draining. A blocking `pop` returns `std::nullopt` once a closed queue
 is empty.
 
+## MPMCQueue
+
+`MPMCQueue<MaxPayloadSize>` is a bounded multi-producer, multi-consumer
+work-sharing queue. Every successful push receives an increasing publication
+sequence, and each queued message can be popped successfully by at most one
+consumer. Capacity must be nonzero. The initial implementation uses a mutex
+around a preallocated `FixedMessage` ring and makes no lock-free or wait-free
+claim.
+
+`try_push` returns `full` without overwriting unread data, rejects payloads
+larger than the template maximum, and returns `closed` after shutdown.
+`try_pop` returns `empty` while an open queue has no data. An undersized output
+returns `message_too_large` without consuming the front message, allowing a
+retry with a larger span.
+
+`close` is idempotent, rejects later pushes, and preserves queued messages for
+draining. Once the queue is both closed and empty, `try_pop` returns `closed`.
+There are no blocking MPMC operations in the current API. Sequence exhaustion
+is not handled; applications must not approach `uint64_t` wraparound.
+
 ## SPSCQueue
 
 `SPSCQueue<MaxPayloadSize>` supports exactly one producer and one consumer. It

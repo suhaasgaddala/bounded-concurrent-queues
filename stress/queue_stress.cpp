@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "orbitqueue/blocking_queue.h"
+#include "orbitqueue/mpmc_queue.h"
 #include "orbitqueue/spmc_multicast_queue.h"
 #include "orbitqueue/spsc_queue.h"
 
@@ -701,6 +702,153 @@ struct MulticastMetrics {
     return !failures.failed();
 }
 
+[[nodiscard]] bool run_mpmc(const Config& config, FailureRecorder& failures) {
+    orbitqueue::MPMCQueue<max_payload_size> queue(config.capacity);
+    const auto deadline = deadline_for(config);
+    const auto total_slots = config.iterations * config.producers;
+    std::vector<std::uint8_t> published(static_cast<std::size_t>(total_slots + 1), 0);
+    std::vector<std::uint8_t> consumed(static_cast<std::size_t>(total_slots + 1), 0);
+    std::mutex consumed_mutex;
+    std::atomic<bool> start{false};
+    std::atomic<std::uint32_t> remaining_producers{config.producers};
+    std::atomic<std::uint64_t> pushed{0};
+    std::atomic<std::uint64_t> popped{0};
+    std::atomic<std::uint64_t> full_retries{0};
+    std::atomic<std::uint64_t> empty_retries{0};
+
+    std::vector<std::thread> consumers;
+    consumers.reserve(config.consumers);
+    for (std::uint32_t consumer_id = 0; consumer_id < config.consumers; ++consumer_id) {
+        consumers.emplace_back([&, consumer_id] {
+            static_cast<void>(consumer_id);
+            std::uint64_t last_queue_sequence = 0;
+            wait_for_start(start);
+            while (true) {
+                std::vector<std::byte> payload(config.payload_size);
+                const auto result = queue.try_pop(payload);
+                if (result.status == QueueStatus::success) {
+                    const auto header = read_header(payload);
+                    const auto global = header.global_sequence;
+                    const bool in_range = header.producer_id < config.producers &&
+                        header.local_sequence >= 1 &&
+                        header.local_sequence <= config.iterations &&
+                        global == static_cast<std::uint64_t>(header.producer_id) *
+                                config.iterations + header.local_sequence;
+                    if (result.sequence <= last_queue_sequence) {
+                        failures.record({"mpmc", config.seed, result.sequence,
+                                         last_queue_sequence + 1, result.sequence,
+                                         0, header.checksum,
+                                         "non-increasing queue sequence"});
+                    }
+                    last_queue_sequence = result.sequence;
+                    if (!in_range || !validate_payload(
+                            "mpmc", config, payload, header.producer_id,
+                            header.local_sequence, global,
+                            result.sequence, failures)) {
+                        continue;
+                    }
+                    {
+                        std::lock_guard lock(consumed_mutex);
+                        auto& seen = consumed[static_cast<std::size_t>(global)];
+                        if (seen != 0U) {
+                            failures.record({"mpmc", config.seed, result.sequence,
+                                             global, global, header.checksum,
+                                             header.checksum,
+                                             "duplicate consumed message"});
+                        }
+                        seen = 1;
+                    }
+                    popped.fetch_add(1, std::memory_order_relaxed);
+                } else if (result.status == QueueStatus::empty) {
+                    empty_retries.fetch_add(1, std::memory_order_relaxed);
+                    std::this_thread::yield();
+                } else if (result.status == QueueStatus::closed) {
+                    break;
+                } else {
+                    failures.record({"mpmc", config.seed,
+                                     popped.load(std::memory_order_relaxed),
+                                     0, result.sequence, 0, 0,
+                                     "unexpected consumer status"});
+                    break;
+                }
+            }
+        });
+    }
+
+    std::vector<std::thread> producers;
+    producers.reserve(config.producers);
+    for (std::uint32_t producer_id = 0; producer_id < config.producers; ++producer_id) {
+        producers.emplace_back([&, producer_id] {
+            std::mt19937_64 scheduling(
+                config.seed ^ 0x4d504d43ULL ^
+                static_cast<std::uint64_t>(producer_id));
+            wait_for_start(start);
+            for (std::uint64_t local = 1;
+                 local <= config.iterations && Clock::now() < deadline;) {
+                const auto global = static_cast<std::uint64_t>(producer_id) *
+                                    config.iterations + local;
+                const auto payload = make_payload(config, producer_id, local, global);
+                const auto result = queue.try_push(payload);
+                if (result.status == QueueStatus::success) {
+                    published[static_cast<std::size_t>(global)] = 1;
+                    pushed.fetch_add(1, std::memory_order_relaxed);
+                    ++local;
+                } else if (result.status == QueueStatus::full) {
+                    full_retries.fetch_add(1, std::memory_order_relaxed);
+                    std::this_thread::yield();
+                } else {
+                    failures.record({"mpmc", config.seed, global,
+                                     global, result.sequence, 0, 0,
+                                     "unexpected producer status"});
+                    break;
+                }
+                if ((scheduling() & 0x7fU) == 0U) {
+                    std::this_thread::yield();
+                }
+            }
+            if (remaining_producers.fetch_sub(1, std::memory_order_acq_rel) == 1U) {
+                queue.close();
+            }
+        });
+    }
+
+    start.store(true, std::memory_order_release);
+    for (auto& producer : producers) {
+        producer.join();
+    }
+    for (auto& consumer : consumers) {
+        consumer.join();
+    }
+
+    std::uint64_t missing = 0;
+    for (std::size_t index = 1; index < published.size(); ++index) {
+        if (published[index] != consumed[index]) {
+            ++missing;
+            if (!failures.failed()) {
+                failures.record({"mpmc", config.seed,
+                                 static_cast<std::uint64_t>(index),
+                                 published[index], consumed[index], 0, 0,
+                                 "published/consumed membership mismatch"});
+            }
+        }
+    }
+    const auto pushed_count = pushed.load(std::memory_order_relaxed);
+    const auto popped_count = popped.load(std::memory_order_relaxed);
+    if (pushed_count != popped_count || missing != 0) {
+        failures.record({"mpmc", config.seed, popped_count,
+                         pushed_count, popped_count, 0, 0,
+                         "pushed and popped totals differ after close/drain"});
+    }
+    std::cout << "stress_result queue=mpmc seed=" << config.seed
+              << " pushed=" << pushed_count
+              << " popped=" << popped_count
+              << " full_retries=" << full_retries.load(std::memory_order_relaxed)
+              << " empty_retries=" << empty_retries.load(std::memory_order_relaxed)
+              << " missing=" << missing
+              << " validation_failures=" << (failures.failed() ? 1 : 0) << '\n';
+    return !failures.failed();
+}
+
 [[nodiscard]] bool should_run(const Config& config, const std::string_view queue) {
     return config.queue == "all" || config.queue == queue;
 }
@@ -738,10 +886,8 @@ int main(int argc, char** argv) {
     if (should_run(config, "spmc")) {
         passed = run_spmc(config, failures) && passed;
     }
-    if (config.queue == "mpmc") {
-        failures.record({"mpmc", config.seed, 0, 0, 0, 0, 0,
-                         "MPMCQueue is not available in this build stage"});
-        passed = false;
+    if (should_run(config, "mpmc")) {
+        passed = run_mpmc(config, failures) && passed;
     }
 
     failures.print();

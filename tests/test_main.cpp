@@ -3,6 +3,7 @@
 
 void run_fixed_message_tests();
 void run_blocking_queue_tests();
+void run_mpmc_queue_tests();
 void run_spsc_queue_tests();
 void run_spmc_multicast_queue_tests();
 #if defined(ORBITQUEUE_TEST_BENCHMARK_SUPPORT)
@@ -13,6 +14,7 @@ int main() {
     try {
         run_fixed_message_tests();
         run_blocking_queue_tests();
+        run_mpmc_queue_tests();
         run_spsc_queue_tests();
         run_spmc_multicast_queue_tests();
 #if defined(ORBITQUEUE_TEST_BENCHMARK_SUPPORT)

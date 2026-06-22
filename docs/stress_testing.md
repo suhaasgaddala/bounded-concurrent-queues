@@ -68,7 +68,9 @@ variation. This is useful evidence, not a proof of all possible interleavings.
   wakeup smoke cases.
 - **SPMC multicast:** validates monotonic per-consumer sequences, complete
   payload patterns, aggregate/unique reads, and contract-allowed lag recovery.
-- **MPMC:** enabled when the bounded `MPMCQueue` implementation is present.
+- **MPMC:** validates multiple producers and consumers, queue sequence order,
+  full/empty retries, payload uniqueness, duplicate/loss detection, and
+  close/drain completion.
 
 Short scenario-specific smoke runs are registered with CTest. Long runs are
 intentional local or scheduled validation and are not part of normal CI.

@@ -8,12 +8,15 @@ language requirements, warnings, and optional sanitizer flags to consumers.
 ```mermaid
 flowchart LR
     API["OrbitQueue::orbitqueue"] --> BQ["BlockingQueue<T>"]
+    API --> MPMC["MPMCQueue<N>"]
     API --> SPSC["SPSCQueue<N>"]
     API --> SPMC["SPMCMulticastQueue<N>"]
     SPSC --> FM["FixedMessage<N>"]
     SPMC --> FM
+    MPMC --> FM
     TESTS["Contract and package tests"] --> API
     BENCH["JSON benchmark matrix"] --> BQ
+    BENCH --> MPMC
     BENCH --> SPSC
     BENCH --> SPMC
     BOOST["Optional Boost.Lockfree baseline"] -. "OFF by default" .-> BENCH
@@ -39,6 +42,12 @@ This conservative design prevents a producer from rewriting a payload while a
 consumer reads it. Per-consumer sequence cursors identify retained messages
 and report lag when ring history has been overwritten. It is not described as
 lock-free.
+
+`MPMCQueue` is the bounded fixed-payload work-sharing counterpart to the
+generic blocking baseline. It uses a preallocated `FixedMessage` ring and one
+mutex to serialize producer publication, consumer claims, close, and retryable
+undersized reads. Its public operations are non-blocking in queue semantics:
+they return `full`, `empty`, or `closed` instead of waiting.
 
 The benchmark layer is not part of the installed API. Its scenario-specific
 drivers preserve queue ownership contracts: SPSC always has one consumer,

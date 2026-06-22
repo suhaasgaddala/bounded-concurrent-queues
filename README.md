@@ -19,6 +19,8 @@ API, validation, risk, and roadmap snapshot.
 ## Queue types
 
 - `BlockingQueue<T>`: bounded mutex-based FIFO with close and drain behavior.
+- `MPMCQueue<N>`: bounded multi-producer, multi-consumer non-blocking
+  work-sharing queue with fixed-size payloads and close/drain behavior.
 - `SPSCQueue<N>`: bounded single-producer, single-consumer work-sharing FIFO
   with fixed-size payloads and no overwrite.
 - `SPMCMulticastQueue<N>`: single-producer multicast ring where each registered
@@ -113,6 +115,11 @@ implementation uses acquire/release atomics under its stated one-producer,
 one-consumer contract. The multicast implementation deliberately uses a mutex
 to avoid payload races during overwrite. No lock-free progress guarantee is
 made.
+
+See [docs/memory_model.md](docs/memory_model.md) for the synchronization and
+happens-before rationale, [docs/correctness_strategy.md](docs/correctness_strategy.md)
+for the validation layers, and [docs/stress_testing.md](docs/stress_testing.md)
+for deterministic stress reproduction.
 
 ## Roadmap
 
