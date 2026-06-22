@@ -1,61 +1,75 @@
 # Architecture
 
-OrbitQueue v2 is a header-only C++20 library. Public headers live under
-`include/orbitqueue`, contract tests under `tests`, and measurement code under
-`benchmarks`. The `orbitqueue` CMake interface target carries include paths,
-language requirements, warnings, and optional sanitizer flags to consumers.
+Bounded Concurrent Queues for C++20 is a header-only library. Public headers
+live under `include/orbitqueue`, contract tests under `tests`, deterministic
+stress code under `stress`, and measurement code under `benchmarks`.
 
 ```mermaid
 flowchart LR
-    API["OrbitQueue::orbitqueue"] --> BQ["BlockingQueue<T>"]
+    API["Compatibility target: OrbitQueue::orbitqueue"] --> BQ["BlockingQueue<T>"]
     API --> MPMC["MPMCQueue<N>"]
     API --> SPSC["SPSCQueue<N>"]
     API --> SPMC["SPMCMulticastQueue<N>"]
     SPSC --> FM["FixedMessage<N>"]
     SPMC --> FM
     MPMC --> FM
-    TESTS["Contract and package tests"] --> API
-    BENCH["JSON benchmark matrix"] --> BQ
+    TESTS["Contract, stress, and package tests"] --> API
+    BENCH["Validated JSON benchmark matrix"] --> BQ
     BENCH --> MPMC
     BENCH --> SPSC
     BENCH --> SPMC
     BOOST["Optional Boost.Lockfree baseline"] -. "OFF by default" .-> BENCH
 ```
 
-Queue contracts come before optimization because concurrency results are only
-meaningful when delivery, capacity, ordering, overwrite, and ownership rules
-are defined. The result types make ordinary boundary states inspectable rather
-than encoding them as undefined behavior or ambiguous booleans.
+Queue contracts precede optimization. Capacity, producer and consumer
+ownership, delivery, ordering, overflow, shutdown, and progress semantics must
+be stated before throughput numbers can be interpreted.
 
-The old prototype was rebuilt instead of patched because its global types,
-raw callback writes, caller-managed indices, synchronization protocol, build
-assumptions, and benchmark semantics did not provide a stable foundation.
-The v2 code does not reuse its queue algorithms.
+## Queue Implementations
 
 `SPSCQueue` uses monotonic head and tail counters. A producer publishes a fully
 written slot with a release store; the consumer observes it with an acquire
-load and releases capacity after copying. This relies on exactly one producer
-and one consumer.
+load and releases capacity after copying. Correctness depends on exactly one
+producer and one consumer.
 
-`SPMCMulticastQueue` uses a mutex around slot publication and consumer copies.
-This conservative design prevents a producer from rewriting a payload while a
-consumer reads it. Per-consumer sequence cursors identify retained messages
-and report lag when ring history has been overwritten. It is not described as
-lock-free.
+`SPMCMulticastQueue` uses a mutex around publication, cursor inspection, lag
+recovery, and payload copies. This prevents a producer from rewriting ordinary
+payload bytes while a consumer reads them. Consumers have independent cursors,
+so delivery is multicast retained history rather than exclusive work sharing.
 
-`MPMCQueue` is the bounded fixed-payload work-sharing counterpart to the
-generic blocking baseline. It uses a preallocated power-of-two cell array,
-atomic enqueue/dequeue position claims, and per-cell acquire/release generation
-sequences. Payload bytes are copied only while a thread owns the cell. The
-implementation contains no mutex; its try-only operations return `full` or
-`empty` instead of waiting. It has no close operation.
+`MPMCQueue` is the bounded fixed-payload work-sharing counterpart. It uses a
+preallocated power-of-two cell array, atomic enqueue/dequeue position claims,
+and per-cell acquire/release generation sequences. Payload bytes are copied
+only while a thread owns the cell. The implementation contains no mutex, has
+try-only operations, and provides no close operation.
 
-The benchmark layer is not part of the installed API. Its scenario-specific
-drivers preserve queue ownership contracts: SPSC always has one consumer,
-while multicast, blocking MPMC, and optional Boost work-sharing queues use one,
-three, and ten consumers. Shared benchmark helpers format results and retain
-validated IDs during each trial to detect duplicate or missing work.
+`BlockingQueue<T>` is the generic blocking MPMC baseline. One mutex protects
+storage and closure state; condition variables wait for non-empty and non-full
+predicates. Close wakes waiters and preserves queued items for draining.
+
+## Package Compatibility
+
+The root CMake project identifier is `BoundedConcurrentQueues`. Existing source
+and package compatibility remains intentionally unchanged:
+
+- installed package: `OrbitQueue`;
+- exported target: `OrbitQueue::orbitqueue`;
+- include path: `include/orbitqueue`;
+- C++ namespace: `orbitqueue`;
+- build options and version macros: `ORBITQUEUE_*`.
+
+Renaming those surfaces would require a separate compatibility migration. The
+current interface target still carries C++20, include paths, warnings, and
+optional sanitizer flags to consumers.
+
+## Measurement Boundary
+
+The benchmark layer is not part of the installed API. Scenario-specific
+drivers preserve ownership contracts: SPSC remains one producer/one consumer,
+SPMC reports multicast observations, and work-sharing queues validate unique
+delivery after drain. Shared helpers retain validated IDs to detect duplicate
+or missing work.
 
 Boost is discovered only when `ORBITQUEUE_ENABLE_BOOST_BENCHMARKS=ON`. Missing
-Boost headers disable those scenarios with a configure-time warning; they do
-not affect the core target, tests, installation, or normal benchmark.
+headers disable those optional scenarios without affecting the core library,
+tests, installation, stress runner, or normal benchmark.

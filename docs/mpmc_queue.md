@@ -2,10 +2,10 @@
 
 `MPMCQueue<MaxPayloadSize>` is a bounded, try-only, multi-producer,
 multi-consumer work-sharing queue. It adapts Dmitry Vyukov's sequence-numbered
-array design to OrbitQueue's `FixedMessage` and result APIs.
+array design to the library's `FixedMessage` and result APIs.
 
-The implementation contains no mutex or condition variable. OrbitQueue calls
-it **mutex-free**, not lock-free or wait-free. A progress claim would also need
+The implementation contains no mutex or condition variable. It is described as
+**mutex-free**, not lock-free or wait-free. A progress claim would also need
 to account for platform atomic guarantees, preemption after a position claim,
 counter exhaustion, and every supported operation. That proof is not part of
 this milestone.

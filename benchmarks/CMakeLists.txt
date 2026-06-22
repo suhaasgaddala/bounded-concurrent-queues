@@ -29,7 +29,7 @@ if(ORBITQUEUE_ENABLE_BOOST_BENCHMARKS)
             ORBITQUEUE_HAVE_BOOST_LOCKFREE=1)
         target_include_directories(orbitqueue_benchmark PRIVATE
             "${ORBITQUEUE_BOOST_LOCKFREE_INCLUDE_DIR}")
-        message(STATUS "OrbitQueue Boost.Lockfree benchmarks enabled")
+        message(STATUS "Bounded queue Boost.Lockfree benchmarks enabled")
     else()
         message(WARNING
             "ORBITQUEUE_ENABLE_BOOST_BENCHMARKS is ON, but "

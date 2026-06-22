@@ -1,28 +1,30 @@
-# Legacy Context Summary
+# Legacy Prototype Context
 
-The original OrbitQueue was an educational C++20 prototype exploring
-fixed-size in-memory queues. It had no automated tests or CI, hard-coded build
-assumptions, conflicting global types, unclear multicast SPMC semantics, and
-unsafe APIs that exposed raw writes and caller-managed ring indices. Its
-benchmark also compared queues with different delivery semantics and payloads.
+The original OrbitQueue/AtomicRing-style repository was an educational C++20
+prototype exploring fixed-size in-memory queues. It had no automated tests or
+CI, contained hard-coded build assumptions and conflicting global types, used
+unsafe raw-write and caller-managed-index APIs, and did not define multicast
+delivery precisely. Its benchmark also compared unlike delivery semantics and
+payloads.
 
-OrbitQueue v2 starts from explicit contracts, bounded span-based payload APIs,
-portable CMake, correctness tests, sanitizer support, and semantically honest
-benchmarks. It is the supported successor and useful replacement for the
-prototype, but it does not reuse the legacy queue algorithms.
+Bounded Concurrent Queues for C++20 supersedes that prototype with explicit
+contracts, bounded span-based payload APIs, portable target-scoped CMake,
+correctness tests, deterministic stress, sanitizer support, and semantically
+separated benchmark metrics. The current queue algorithms do not reuse the
+legacy implementations.
 
 The original research was inspired by the CppCon 2022 talk
 [Trading at Light Speed](https://youtu.be/8uAW5FQtcvE) and asked whether
 localized per-slot metadata could reduce contention relative to global queue
-indices. V2 preserves that question without preserving the unverified claim
-that the legacy protocol was race-free or faster.
+indices. The current project preserves that research question without
+preserving the unverified claim that the old protocol was race-free or faster.
 
-Useful benchmark parity has been recreated with safe shutdown, comparable
-sequence payloads, explicit metrics, 1/3/10-consumer matrices where contracts
-permit, and an optional Boost.Lockfree path. Historical images and the full v1
-technical context are preserved under [`docs/legacy`](legacy/README.md) with
-clear warnings that they are not current designs or performance evidence.
+Useful benchmark concepts were recreated with safe shutdown, comparable
+sequence-bearing payloads, explicit metrics, contract-valid consumer matrices,
+and an optional Boost.Lockfree path. Historical images and the full legacy
+technical context remain under [`docs/legacy`](legacy/README.md). They are
+historical artifacts, not current designs or performance evidence.
 
-See [`docs/v1_parity_audit.md`](v1_parity_audit.md) for the disposition of every
-legacy feature and the manual checks required before deleting the old
+See [`docs/v1_parity_audit.md`](v1_parity_audit.md) for the disposition of
+legacy features and the manual checks required before retiring the original
 repository.

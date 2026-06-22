@@ -1,6 +1,6 @@
 # Memory Model and Synchronization
 
-OrbitQueue uses different synchronization strategies for different delivery
+The library uses different synchronization strategies for different delivery
 contracts. This document explains the current happens-before arguments and the
 limits of those arguments. It is engineering rationale, not a formal proof.
 
@@ -124,7 +124,7 @@ threads are delayed. Establishing it requires an algorithm-level argument that
 covers retry loops, allocation, atomic lock-freedom on supported platforms,
 memory reclamation, counter wrap, and every operation's linearization point.
 
-OrbitQueue does not currently make that progress argument for MPMC or
+The project does not currently make that progress argument for MPMC or
 multicast. The MPMC implementation is therefore described as mutex-free, not
 as officially lock-free.
 
@@ -137,7 +137,8 @@ stored derived versions and could overwrite one another's metadata updates.
 Acquire/release ordering publishes prior writes; it does not prevent a future
 writer from racing with an in-progress reader.
 
-V2 keeps the multicast research question but uses a mutex until an alternative
+The current library keeps the multicast research question but uses a mutex
+until an alternative
 has an equivalent correctness argument and validation suite.
 
 ## Sanitizer evidence and limits
@@ -159,7 +160,7 @@ stress runs. They do not replace them.
 
 Within documented ownership rules, current tests and stress runs support the
 stated FIFO, no-overwrite, close/drain, work-sharing, multicast, and lag
-contracts. OrbitQueue does not claim formal verification, stable ABI,
+contracts. The project does not claim formal verification, stable ABI,
 production readiness, wait-freedom, lock-freedom, or correctness after
 `uint64_t` sequence exhaustion.
 

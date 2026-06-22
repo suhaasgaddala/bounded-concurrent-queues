@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(OrbitQueue VERSION 2.1.0 LANGUAGES CXX)
+project(BoundedConcurrentQueues VERSION 2.1.0 LANGUAGES CXX)
 
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
-option(ORBITQUEUE_BUILD_TESTS "Build OrbitQueue tests" ON)
-option(ORBITQUEUE_BUILD_BENCHMARKS "Build OrbitQueue benchmarks" ON)
-option(ORBITQUEUE_BUILD_STRESS "Build OrbitQueue deterministic stress runner" ON)
+option(ORBITQUEUE_BUILD_TESTS "Build bounded concurrent queue tests" ON)
+option(ORBITQUEUE_BUILD_BENCHMARKS "Build bounded queue benchmarks" ON)
+option(ORBITQUEUE_BUILD_STRESS "Build deterministic queue stress runner" ON)
 option(ORBITQUEUE_ENABLE_BOOST_BENCHMARKS
     "Enable optional Boost.Lockfree benchmark scenarios" OFF)
 option(ORBITQUEUE_ENABLE_WARNINGS "Enable strong compiler warnings" ON)

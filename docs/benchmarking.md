@@ -62,7 +62,7 @@ results are discarded, but the executable exits unsuccessfully if warmup
 validation fails. `--warmup-ms 0` disables warmup.
 
 Trials create a fresh queue and fresh threads. One JSON line is emitted per
-measured trial. OrbitQueue deliberately reports raw trials instead of averaging
+measured trial. The harness deliberately reports raw trials instead of averaging
 them in-process so callers can retain samples, choose statistics, and identify
 outliers without losing information.
 
@@ -119,4 +119,4 @@ The historical chart at
 [`docs/legacy/assets/benchmark_v1_historical.png`](legacy/assets/benchmark_v1_historical.png)
 is preserved only as a v1 artifact. The legacy benchmark compared different
 payloads and delivery semantics and retained insufficient provenance, so its
-numbers are not a v2 baseline.
+numbers are not a current-project baseline.

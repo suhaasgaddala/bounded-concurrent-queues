@@ -1,4 +1,4 @@
-# OrbitQueue v1 Deletion Checklist
+# Legacy OrbitQueue Repository Retirement Checklist
 
 This checklist is the final gate before retiring or deleting the legacy
 [`suhaasgaddala/OrbitQueue`](https://github.com/suhaasgaddala/OrbitQueue)
@@ -6,7 +6,7 @@ repository. Completing the parity migration does not authorize deletion by
 itself. Do not delete or rename either repository until every required manual
 item below has an explicit decision.
 
-## Verified v2 Migration State
+## Verified Successor Migration State
 
 - [x] The `v1-parity-migration` branch was merged into `main` at parity commit
   `88b87f08a4fe749a30077c599de22c1f6d54e5a4`.
@@ -14,8 +14,8 @@ item below has an explicit decision.
   [run 27945657111](https://github.com/suhaasgaddala/orbitqueue-v2/actions/runs/27945657111).
 - [x] GitHub CI passed on merged `main` in Debug and Release:
   [run 27945692814](https://github.com/suhaasgaddala/orbitqueue-v2/actions/runs/27945692814).
-- [x] The v2 README clearly identifies OrbitQueue v2 as the supported successor
-  to the original prototype.
+- [x] The current README presents Bounded Concurrent Queues for C++20 as the
+  maintained project and labels the original prototype as historical.
 - [x] Historical v1 artifacts are preserved under `docs/legacy`, including the
   original license notice, both images, and the full factual v1 context audit.
 - [x] The optional Boost.Lockfree benchmark is documented and
@@ -32,9 +32,10 @@ item below has an explicit decision.
   preferred because it preserves every ref and Git object:
 
   ```sh
-  git -C /Users/suhaasgaddala/OrbitQueue bundle create \
-    /path/outside/both/repos/OrbitQueue-v1-all.bundle --all
-  git bundle verify /path/outside/both/repos/OrbitQueue-v1-all.bundle
+  legacy_clone="<legacy-clone>"
+  bundle_path="<backup-directory>/OrbitQueue-v1-all.bundle"
+  git -C "$legacy_clone" bundle create "$bundle_path" --all
+  git bundle verify "$bundle_path"
   ```
 
 - [ ] Manually check GitHub issues, pull requests, releases, wiki pages, stars,
@@ -52,8 +53,8 @@ item below has an explicit decision.
 - [ ] Decide whether v1 should be deleted or archived. Archiving first is the
   lower-risk option because it preserves URLs and history while making the
   repository read-only.
-- [ ] Decide whether `orbitqueue-v2` should remain the permanent repository name
-  or be renamed to `OrbitQueue`. No rename has been performed.
+- [ ] Rename the successor GitHub repository to
+  `bounded-concurrent-queues` after the identity branch is reviewed and merged.
 - [ ] Decide whether the remote `v1-parity-migration` branch should remain as an
   audit trail after the merge.
 
@@ -63,10 +64,11 @@ item below has an explicit decision.
   GitHub URL and verify configure, build, and tests:
 
   ```sh
-  git clone https://github.com/suhaasgaddala/orbitqueue-v2.git
-  cmake -S orbitqueue-v2 -B orbitqueue-v2/build -DCMAKE_BUILD_TYPE=Release
-  cmake --build orbitqueue-v2/build --parallel
-  ctest --test-dir orbitqueue-v2/build --output-on-failure
+  git clone https://github.com/suhaasgaddala/bounded-concurrent-queues.git
+  cmake -S bounded-concurrent-queues -B bounded-concurrent-queues/build \
+    -DCMAKE_BUILD_TYPE=Release
+  cmake --build bounded-concurrent-queues/build --parallel
+  ctest --test-dir bounded-concurrent-queues/build --output-on-failure
   ```
 
 - [ ] Confirm the clean clone resolves the expected final commit and local
@@ -81,7 +83,7 @@ item below has an explicit decision.
 | Field | Decision |
 | --- | --- |
 | V1 disposition: archive or delete | Pending |
-| V2 repository name | Pending |
+| Successor repository rename | Pending: `bounded-concurrent-queues` |
 | V1 backup location | Pending |
 | GitHub/manual review completed by | Pending |
 | Final clean-clone verification commit | Pending |

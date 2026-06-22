@@ -1,13 +1,14 @@
-# OrbitQueue v2 Project Context
+# Bounded Concurrent Queues for C++20: Project Context
 
-> Detailed repository snapshot for the `mpmc-readiness-and-queue` milestone,
+> Detailed repository snapshot for the `project-identity-and-diagrams` milestone,
 > updated 2026-06-22. Public headers and tests remain the source of truth.
 
 ## 1. Purpose and Evidence Model
 
-OrbitQueue v2 is a C++20 header-only concurrency research library for bounded,
-in-memory queues. It exists to make queue ownership, delivery, overflow,
-ordering, and shutdown contracts explicit before using performance results.
+Bounded Concurrent Queues for C++20 is a header-only concurrency research
+library for bounded, in-memory queues. It makes queue ownership, delivery,
+overflow, ordering, and shutdown contracts explicit before using performance
+results.
 
 This document uses four evidence categories:
 
@@ -19,7 +20,7 @@ This document uses four evidence categories:
 When statements disagree, use this order: public headers, executable tests,
 focused contract documents, this snapshot, then historical material.
 
-OrbitQueue is experimental. It is not claimed production-ready, formally
+The library is experimental. It is not claimed production-ready, formally
 verified, wait-free, officially lock-free, or fastest. Mutex-free describes the
 new MPMC implementation; it is not used as a synonym for a progress guarantee.
 
@@ -60,20 +61,22 @@ Current non-goals:
 
 | Attribute | Value |
 | --- | --- |
-| GitHub repository | `https://github.com/suhaasgaddala/orbitqueue-v2` |
+| Current GitHub remote | Legacy slug pending manual rename after review |
+| Intended repository slug | `bounded-concurrent-queues` |
 | Default branch | `main` |
-| Active milestone branch | `mpmc-readiness-and-queue` |
+| Active milestone branch | `project-identity-and-diagrams` |
 | Main baseline | `2db29b515f1158d301effbfe5060b545fb3c5011` |
 | V1 parity commit | `88b87f08a4fe749a30077c599de22c1f6d54e5a4` |
 | Project version | `2.1.0` |
+| CMake project identifier | `BoundedConcurrentQueues` |
 | Core form | Header-only CMake interface target |
 | Required language | C++20 |
 | Minimum CMake | 3.20 |
 | Mandatory third-party dependencies | None |
 
-The old OrbitQueue repository is not modified by this work. Historical value
-needed for successor status is preserved under `docs/legacy`; unsafe v1 source
-and APIs are deliberately not reintroduced.
+The original OrbitQueue/AtomicRing-style repository is historical and is not
+modified by this work. Preserved artifacts live under `docs/legacy`; unsafe
+source and APIs are deliberately not reintroduced.
 
 ## 5. Repository Map
 
@@ -184,7 +187,7 @@ One mutex covers publication, generation inspection, lag recovery, and payload
 copy. This prevents a producer from rewriting ordinary bytes while a consumer
 copies them. Publication never waits for a slow consumer. When a cursor falls
 behind retained history, the handle reports `consumer_lagged`, moves to the
-oldest retained sequence, and can resume.
+oldest retained sequence, and can continue.
 
 A short destination leaves that consumer's cursor unchanged. Consumer handles
 contain a non-owning queue pointer and must not outlive the queue. One handle
@@ -245,7 +248,7 @@ activity.
 ### 10.5 Progress and lifetime limits
 
 The implementation contains no mutex or condition variable and is called
-mutex-free. OrbitQueue does not make an official lock-free or wait-free claim.
+mutex-free. The project does not make an official lock-free or wait-free claim.
 A producer delayed after claiming a position can delay observation of later
 positions, and platform atomic guarantees have not been elevated into a
 supported progress contract.
@@ -268,9 +271,9 @@ These are implementation/test-supported invariants, not a formal proof.
 
 ## 12. Build and Package System
 
-The root target is an interface library with alias
-`OrbitQueue::orbitqueue`. It exports C++20, include paths, warning policy, and
-optional sanitizer flags.
+The root CMake project is `BoundedConcurrentQueues`. Its compatibility target
+is an interface library with alias `OrbitQueue::orbitqueue`; it exports C++20,
+include paths, warning policy, and optional sanitizer flags.
 
 | CMake option | Default | Effect |
 | --- | --- | --- |
@@ -287,6 +290,11 @@ The public header install rule covers the entire `include/` tree, including
 version file. The isolated downstream CTest installs to a temporary prefix,
 uses `find_package(OrbitQueue 2 CONFIG REQUIRED)`, includes SPSC and MPMC
 headers, and executes one round trip through each queue.
+
+The installed package name, exported target, `include/orbitqueue` path,
+`orbitqueue` namespace, `ORBITQUEUE_*` options, and version macros remain stable
+for source/package compatibility. Renaming them is outside this identity-only
+milestone.
 
 Boost remains benchmark-only, optional, and default OFF. Missing Boost headers
 warn and omit only Boost scenarios.
@@ -384,16 +392,17 @@ exercise them along with package consumption. CI does not currently include
 sanitizer jobs, Windows/macOS, model checking, long stress, performance
 thresholds, coverage, static analysis, or release packaging.
 
-## 17. Legacy Successor Status
+## 17. Historical Prototype Relationship
 
-V2 preserves useful concepts from v1: bounded SPSC work sharing, multicast
-research, a blocking baseline, benchmark intent, architecture imagery, license
-attribution, and a detailed historical audit.
+The current project preserves useful concepts from the original prototype:
+bounded SPSC work sharing, multicast research, a blocking baseline, benchmark
+intent, architecture imagery, license attribution, and a detailed historical
+audit.
 
-V2 intentionally excludes v1 raw allocation macros, global namespace APIs,
-caller-managed ring indices, callback writes, unsafe SPMC slot protocol,
-machine-specific include paths, cross-semantic throughput claims, and hanging
-benchmark shutdown behavior.
+It intentionally excludes raw allocation macros, global namespace APIs,
+caller-managed ring indices, callback writes, the unsafe historical SPMC slot
+protocol, machine-specific include paths, cross-semantic throughput claims, and
+hanging benchmark shutdown behavior.
 
 Repository deletion or renaming remains a separate manual decision governed by
 `docs/v1_deletion_checklist.md`. This milestone performs neither action.
@@ -467,6 +476,20 @@ Passing sanitizer runs mean no issue was reported on executed paths; they are
 not proofs. Boost headers were not requested for this focused validation, so
 the optional Boost scenario remains outside this milestone's local evidence.
 
+The project identity milestone was validated locally with Apple Clang 17:
+
+- the CMake cache reports `CMAKE_PROJECT_NAME=BoundedConcurrentQueues`;
+- Debug configure/build and CTest: 7/7 passed;
+- Release configure/build and CTest: 7/7 passed;
+- benchmarks-off configure/build and CTest: 6/6 passed;
+- tests-off configure/build: passed;
+- downstream `find_package(OrbitQueue)` compatibility: passed in all three
+  test-enabled configurations;
+- short seeded all-queue stress: passed with zero validation failures;
+- short Release benchmark: all ten scenarios reported zero invalid payloads
+  and zero validation errors;
+- `git diff --check` and current-facing identity/path audits: passed.
+
 ## 20. Contributor Workflow
 
 Default validation:
@@ -531,9 +554,10 @@ Before changing synchronization:
 
 ## 22. Snapshot Summary
 
-OrbitQueue v2 now has four explicit bounded queue contracts, including a
-mutex-free sequence-cell MPMC work-sharing queue. Its credibility comes from
-the combination of narrow APIs, documented memory ownership, deterministic
-payload validation, high-contention tests, sanitizer paths, honest benchmarks,
-package consumption, and explicit non-claims. The next milestone should deepen
-MPMC verification and portability rather than broaden its API prematurely.
+Bounded Concurrent Queues for C++20 has four explicit bounded queue contracts,
+including a mutex-free sequence-cell MPMC work-sharing queue. Its engineering
+evidence combines narrow APIs, documented memory ownership, deterministic
+payload validation, high-contention tests, sanitizer paths, semantically honest
+benchmarks, package consumption, and explicit non-claims. Further work should
+deepen MPMC verification and portability rather than broaden its API
+prematurely.

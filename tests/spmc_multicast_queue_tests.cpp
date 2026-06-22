@@ -54,7 +54,7 @@ void run_spmc_multicast_queue_tests() {
     expect(lagged.status == QueueStatus::consumer_lagged && slow.next_sequence() == 2,
            "slow consumer must detect lag and move to oldest retained sequence");
     expect(slow.try_read(writable_bytes_of(output)).sequence == 2 && output == 2,
-           "lagged consumer must resume at oldest retained message");
+           "lagged consumer must continue at oldest retained message");
     expect(slow.try_read(writable_bytes_of(output)).sequence == 3 && output == 3,
            "lagged consumer must continue through wraparound");
 

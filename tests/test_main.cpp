@@ -20,10 +20,10 @@ int main() {
 #if defined(ORBITQUEUE_TEST_BENCHMARK_SUPPORT)
         run_benchmark_support_tests();
 #endif
-        std::cout << "All OrbitQueue tests passed\n";
+        std::cout << "All bounded queue tests passed\n";
         return 0;
     } catch (const std::exception& error) {
-        std::cerr << "OrbitQueue test failure: " << error.what() << '\n';
+        std::cerr << "Bounded queue test failure: " << error.what() << '\n';
         return 1;
     }
 }

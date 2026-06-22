@@ -55,7 +55,7 @@ history.
 
 Publication always advances the sequence and may overwrite the oldest slot
 when capacity is exceeded. A slow consumer reports `consumer_lagged`, moves to
-the oldest retained sequence, and can resume on its next read. No raw ring
+the oldest retained sequence, and can continue on its next read. No raw ring
 index is exposed. Consumer handles are move-only and must not outlive their
 queue. Ordering is increasing publication sequence per consumer.
 
