@@ -6,6 +6,7 @@
 #include <span>
 #include <stdexcept>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 #include "orbitqueue/mpmc_queue.h"
@@ -20,6 +21,11 @@ using test_support::writable_bytes_of;
 namespace {
 
 constexpr std::uint64_t checksum_constant = 0x4f52424954515545ULL;
+
+static_assert(!std::is_copy_constructible_v<MPMCQueue<8>>);
+static_assert(!std::is_copy_assignable_v<MPMCQueue<8>>);
+static_assert(!std::is_move_constructible_v<MPMCQueue<8>>);
+static_assert(!std::is_move_assignable_v<MPMCQueue<8>>);
 
 struct ConcurrentPayload {
     std::uint32_t producer_id{};
@@ -75,14 +81,22 @@ void run_mpmc_queue_tests() {
     const std::array exact{
         std::byte{1}, std::byte{2}, std::byte{3}, std::byte{4},
         std::byte{5}, std::byte{6}, std::byte{7}, std::byte{8}};
-    expect(queue.try_push(exact).status == QueueStatus::success,
+    expect(queue.try_push(exact).sequence == 3,
            "exact maximum MPMC payload must be accepted");
+    std::array<std::byte, 8> exact_output{};
+    const auto exact_read = queue.try_pop(exact_output);
+    expect(exact_read.status == QueueStatus::success &&
+               exact_read.bytes_read == exact.size() &&
+               exact_read.sequence == 3 && exact_output == exact,
+           "exact maximum MPMC payload must round-trip without corruption");
+
+    expect(queue.try_push(exact).sequence == 4,
+           "MPMC short-read setup push must succeed");
     std::array<std::byte, 4> short_output{};
     const auto short_read = queue.try_pop(short_output);
     expect(short_read.status == QueueStatus::message_too_large &&
-               short_read.bytes_read == 0 && short_read.sequence == 3,
+               short_read.bytes_read == 0 && short_read.sequence == 4,
            "short MPMC read must report and consume the claimed message");
-    std::array<std::byte, 8> exact_output{};
     expect(queue.try_pop(exact_output).status == QueueStatus::empty,
            "short MPMC read must release rather than restore the claimed cell");
 
@@ -90,14 +104,12 @@ void run_mpmc_queue_tests() {
     expect(queue.try_push(oversized).status == QueueStatus::message_too_large,
            "oversized MPMC payload must be rejected");
 
-    for (std::uint64_t sequence = 4; sequence <= 35; ++sequence) {
-        while (queue.try_push(bytes_of(sequence)).status == QueueStatus::full) {
-            expect(queue.try_pop(writable_bytes_of(output)).status ==
-                       QueueStatus::success,
-                   "MPMC wraparound setup pop must succeed");
-        }
+    for (std::uint64_t sequence = 5; sequence <= 36; ++sequence) {
+        const auto write = queue.try_push(bytes_of(sequence));
         const auto read = queue.try_pop(writable_bytes_of(output));
-        expect(read.status == QueueStatus::success &&
+        expect(write.status == QueueStatus::success &&
+                   write.sequence == sequence &&
+                   read.status == QueueStatus::success &&
                    read.sequence == sequence && output == sequence,
                "MPMC wraparound must preserve payload and logical sequence");
     }

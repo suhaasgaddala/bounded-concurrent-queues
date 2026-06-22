@@ -35,7 +35,7 @@ APIs and unsupported performance claims.
 | `BlockingQueue<T>` | Multiple producers and consumers; work sharing | Bounded; mutex and condition variables; blocking and try operations |
 | `SPSCQueue<N>` | Exactly one producer and one consumer; work sharing | Bounded fixed-message ring; acquire/release atomics |
 | `SPMCMulticastQueue<N>` | One producer and registered independent consumers; multicast | Bounded retained history; mutex-protected publication and reads; detectable lag |
-| `MPMCQueue<N>` | Multiple producers and consumers; work sharing | Bounded power-of-two sequence-cell ring; mutex-free non-blocking try operations |
+| `MPMCQueue<N>` | Multiple producers and consumers; work sharing | Bounded power-of-two sequence-cell ring; mutex-free, try-only operations |
 
 The public payload APIs use `std::span` and reject oversized messages. Queue
 status and sequence information are returned explicitly.

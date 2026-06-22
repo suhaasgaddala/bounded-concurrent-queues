@@ -19,10 +19,11 @@ consumer. Capacity must be a power of two greater than one. The implementation
 uses a preallocated array of sequence-numbered cells and contains no mutex.
 
 `try_push` returns `full` without overwriting unread data, rejects payloads
-larger than the template maximum, and never waits. `try_pop` returns `empty`
-when no cell is published. A consumer claims its dequeue position before
-copying, so an undersized output returns `message_too_large` with zero bytes and
-the message sequence **and consumes the message**.
+larger than the template maximum, and provides no blocking wait operation.
+`try_pop` returns `empty` when no cell is published. A consumer claims its
+dequeue position before copying, so an undersized output returns
+`message_too_large` with zero bytes and the message sequence **and consumes the
+message**.
 
 There are no close or blocking operations in the current API. Callers
 coordinate producer completion externally and drain with `try_pop`. Position
