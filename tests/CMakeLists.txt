@@ -6,7 +6,8 @@ set(orbitqueue_test_sources
     blocking_queue_tests.cpp
     mpmc_queue_tests.cpp
     spsc_queue_tests.cpp
-    spmc_multicast_queue_tests.cpp)
+    spmc_multicast_queue_tests.cpp
+    versioned_spmc_queue_tests.cpp)
 
 if(ORBITQUEUE_BUILD_BENCHMARKS)
     list(APPEND orbitqueue_test_sources benchmark_support_tests.cpp)
@@ -21,7 +22,8 @@ add_library(orbitqueue_header_self_sufficiency OBJECT
     header_self_sufficiency/mpmc_queue.cpp
     header_self_sufficiency/result.cpp
     header_self_sufficiency/spmc_multicast_queue.cpp
-    header_self_sufficiency/spsc_queue.cpp)
+    header_self_sufficiency/spsc_queue.cpp
+    header_self_sufficiency/versioned_spmc_queue.cpp)
 target_link_libraries(orbitqueue_header_self_sufficiency PRIVATE orbitqueue)
 
 if(ORBITQUEUE_BUILD_BENCHMARKS)

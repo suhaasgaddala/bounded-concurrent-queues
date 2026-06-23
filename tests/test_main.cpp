@@ -6,6 +6,7 @@ void run_blocking_queue_tests();
 void run_mpmc_queue_tests();
 void run_spsc_queue_tests();
 void run_spmc_multicast_queue_tests();
+void run_versioned_spmc_queue_tests();
 #if defined(ORBITQUEUE_TEST_BENCHMARK_SUPPORT)
 void run_benchmark_support_tests();
 #endif
@@ -17,6 +18,7 @@ int main() {
         run_mpmc_queue_tests();
         run_spsc_queue_tests();
         run_spmc_multicast_queue_tests();
+        run_versioned_spmc_queue_tests();
 #if defined(ORBITQUEUE_TEST_BENCHMARK_SUPPORT)
         run_benchmark_support_tests();
 #endif
