@@ -16,6 +16,10 @@ if(ORBITQUEUE_BUILD_TESTS)
         COMMAND orbitqueue_stress
             --queue spmc --seed 303 --duration-ms 500 --iterations 2000
             --producers 1 --consumers 3 --payload-size 64 --capacity 31)
+    add_test(NAME orbitqueue_stress_versioned_spmc_smoke
+        COMMAND orbitqueue_stress
+            --queue versioned_spmc --seed 305 --duration-ms 500 --iterations 2000
+            --producers 1 --consumers 3 --payload-size 64 --capacity 31)
     add_test(NAME orbitqueue_stress_mpmc_smoke
         COMMAND orbitqueue_stress
             --queue mpmc --seed 404 --duration-ms 500 --iterations 2000

@@ -28,6 +28,7 @@
 #include "external_baselines/line64_mpmc_adapter.h"
 #include "external_baselines/line64_spsc_adapter.h"
 #include "orbitqueue/spmc_multicast_queue.h"
+#include "orbitqueue/versioned_spmc_queue.h"
 
 #if defined(ORBITQUEUE_HAVE_BOOST_LOCKFREE_QUEUE)
 #include "external_baselines/boost_lockfree_mpmc_adapter.h"
@@ -92,6 +93,7 @@ enum class ScenarioKind {
     rigtorp_spsc,
     line64_blocking,
     spmc,
+    versioned_spmc,
     line64_mpmc,
     boost_mpmc,
     moodycamel_mpmc,
@@ -198,8 +200,8 @@ void print_usage(std::ostream& output) {
         << "  --payload-size <uint32>\n"
         << "  --producers <uint32>\n"
         << "  --consumers <default|single|comma-separated counts>\n"
-        << "  --queue <all|spsc|blocking|spmc|mpmc|boost|boost_spsc|"
-           "boost_mpmc|moodycamel_mpmc|rigtorp_spsc|atomic_queue_mpmc>\n"
+        << "  --queue <all|spsc|blocking|spmc|versioned_spmc|mpmc|boost|"
+           "boost_spsc|boost_mpmc|moodycamel_mpmc|rigtorp_spsc|atomic_queue_mpmc>\n"
         << "  --help\n";
 }
 
@@ -254,8 +256,8 @@ void print_usage(std::ostream& output) {
         }
     }
 
-    const std::array<std::string_view, 11> queues{
-        "all", "spsc", "blocking", "spmc", "mpmc", "boost",
+    const std::array<std::string_view, 12> queues{
+        "all", "spsc", "blocking", "spmc", "versioned_spmc", "mpmc", "boost",
         "boost_spsc", "boost_mpmc", "moodycamel_mpmc",
         "rigtorp_spsc", "atomic_queue_mpmc"};
     if (std::find(queues.begin(), queues.end(), config.queue) == queues.end()) {
@@ -363,6 +365,16 @@ void print_usage(std::ostream& output) {
                 "spmc_multicast_retained_history",
                 "multicast_retained_history", 1, consumers,
                 "SPMC multicast aggregate observations are reported separately"});
+        }
+    }
+    if (selected("versioned_spmc")) {
+        for (const auto consumers : config.consumers) {
+            scenarios.push_back({ScenarioKind::versioned_spmc,
+                "Line64::VersionedSPMCQueue",
+                "spmc_multicast_retained_history",
+                "multicast_retained_history", 1, consumers,
+                "atomic-versioned mutex-free SPMC multicast; aggregate "
+                "observations are reported separately"});
         }
     }
     if (selected("blocking")) {
@@ -605,13 +617,14 @@ template <typename Adapter>
                        producer_errors, true);
 }
 
-[[nodiscard]] Result run_spmc(
+template <typename Queue>
+[[nodiscard]] Result run_spmc_multicast(
     const Scenario& scenario,
     const Config& config,
     const Metadata& metadata,
     const std::uint32_t trial,
     const std::chrono::milliseconds duration) {
-    orbitqueue::SPMCMulticastQueue<max_payload_size> queue(config.capacity);
+    Queue queue(config.capacity);
     std::atomic<bool> running{true};
     std::uint64_t producer_errors = 0;
     std::vector<ConsumerMetrics> metrics(scenario.consumers);
@@ -822,7 +835,13 @@ template <typename Adapter>
             orbitqueue::benchmark::Line64BlockingQueueAdapter>(
             scenario, config, metadata, trial, duration);
     case ScenarioKind::spmc:
-        return run_spmc(scenario, config, metadata, trial, duration);
+        return run_spmc_multicast<
+            orbitqueue::SPMCMulticastQueue<max_payload_size>>(
+            scenario, config, metadata, trial, duration);
+    case ScenarioKind::versioned_spmc:
+        return run_spmc_multicast<
+            orbitqueue::VersionedSPMCQueue<max_payload_size>>(
+            scenario, config, metadata, trial, duration);
     case ScenarioKind::line64_mpmc:
         return run_exclusive_pop_adapter<
             orbitqueue::benchmark::Line64MPMCAdapter>(

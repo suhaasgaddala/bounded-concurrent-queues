@@ -26,6 +26,7 @@
 #include "orbitqueue/mpmc_queue.h"
 #include "orbitqueue/spmc_multicast_queue.h"
 #include "orbitqueue/spsc_queue.h"
+#include "orbitqueue/versioned_spmc_queue.h"
 
 namespace {
 
@@ -192,7 +193,7 @@ void print_usage(std::ostream& output) {
         << "  --seed <uint64>\n"
         << "  --duration-ms <uint64>\n"
         << "  --iterations <uint64>\n"
-        << "  --queue <all|spsc|blocking|spmc|mpmc>\n"
+        << "  --queue <all|spsc|blocking|spmc|versioned_spmc|mpmc>\n"
         << "  --producers <uint32>\n"
         << "  --consumers <uint32>\n"
         << "  --payload-size <uint32>\n"
@@ -253,10 +254,11 @@ void print_usage(std::ostream& output) {
         }
     }
 
-    const std::array<std::string_view, 5> queues{
-        "all", "spsc", "blocking", "spmc", "mpmc"};
+    const std::array<std::string_view, 6> queues{
+        "all", "spsc", "blocking", "spmc", "versioned_spmc", "mpmc"};
     if (std::find(queues.begin(), queues.end(), config.queue) == queues.end()) {
-        throw std::invalid_argument("--queue must be all, spsc, blocking, spmc, or mpmc");
+        throw std::invalid_argument(
+            "--queue must be all, spsc, blocking, spmc, versioned_spmc, or mpmc");
     }
     if (config.duration_ms == 0 ||
         config.duration_ms > static_cast<std::uint64_t>(
@@ -287,7 +289,8 @@ void print_usage(std::ostream& output) {
         (config.producers != 1 || config.consumers != 1)) {
         throw std::invalid_argument("SPSC stress requires one producer and one consumer");
     }
-    if (config.queue == "spmc" && config.producers != 1) {
+    if ((config.queue == "spmc" || config.queue == "versioned_spmc") &&
+        config.producers != 1) {
         throw std::invalid_argument("SPMC stress requires one producer");
     }
     if (config.iterations >
@@ -603,8 +606,12 @@ struct MulticastMetrics {
     std::vector<std::uint8_t> seen;
 };
 
-[[nodiscard]] bool run_spmc(const Config& config, FailureRecorder& failures) {
-    orbitqueue::SPMCMulticastQueue<max_payload_size> queue(config.capacity);
+template <typename Queue>
+[[nodiscard]] bool run_spmc_multicast(
+    const std::string_view label,
+    const Config& config,
+    FailureRecorder& failures) {
+    Queue queue(config.capacity);
     const auto deadline = deadline_for(config);
     std::atomic<bool> start{false};
     std::atomic<bool> producer_done{false};
@@ -626,14 +633,14 @@ struct MulticastMetrics {
                         const auto sequence = result.sequence;
                         if (sequence == 0 || sequence > config.iterations ||
                             sequence <= metrics[index].last_sequence) {
-                            failures.record({"spmc", config.seed, sequence,
+                            failures.record({std::string(label), config.seed, sequence,
                                              metrics[index].last_sequence + 1,
                                              sequence, 0, 0,
                                              "impossible or non-increasing sequence"});
                             continue;
                         }
                         if (!validate_payload(
-                                "spmc", config, payload, 0, sequence, sequence,
+                                label, config, payload, 0, sequence, sequence,
                                 sequence, failures)) {
                             continue;
                         }
@@ -646,7 +653,7 @@ struct MulticastMetrics {
                     } else if (result.status == QueueStatus::empty) {
                         std::this_thread::yield();
                     } else {
-                        failures.record({"spmc", config.seed,
+                        failures.record({std::string(label), config.seed,
                                          metrics[index].reads, 0,
                                          result.sequence, 0, 0,
                                          "unexpected consumer status"});
@@ -665,7 +672,7 @@ struct MulticastMetrics {
             const auto result = queue.try_publish(payload);
             if (result.status != QueueStatus::success ||
                 result.sequence != sequence) {
-                failures.record({"spmc", config.seed, sequence, sequence,
+                failures.record({std::string(label), config.seed, sequence, sequence,
                                  result.sequence, 0, 0,
                                  "publication failed or sequence mismatched"});
                 break;
@@ -699,7 +706,7 @@ struct MulticastMetrics {
         }
         unique += observed ? 1U : 0U;
     }
-    std::cout << "stress_result queue=spmc seed=" << config.seed
+    std::cout << "stress_result queue=" << label << " seed=" << config.seed
               << " published=" << published
               << " aggregate_reads=" << aggregate_reads
               << " unique_verified=" << unique
@@ -891,7 +898,14 @@ int main(int argc, char** argv) {
         passed = run_blocking(config, failures) && passed;
     }
     if (should_run(config, "spmc")) {
-        passed = run_spmc(config, failures) && passed;
+        passed = run_spmc_multicast<
+            orbitqueue::SPMCMulticastQueue<max_payload_size>>(
+            "spmc", config, failures) && passed;
+    }
+    if (should_run(config, "versioned_spmc")) {
+        passed = run_spmc_multicast<
+            orbitqueue::VersionedSPMCQueue<max_payload_size>>(
+            "versioned_spmc", config, failures) && passed;
     }
     if (should_run(config, "mpmc")) {
         passed = run_mpmc(config, failures) && passed;

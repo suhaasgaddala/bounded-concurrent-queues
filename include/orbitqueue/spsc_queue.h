@@ -12,6 +12,17 @@
 
 namespace orbitqueue {
 
+// Lock-free bounded single-producer/single-consumer ring.
+//
+// The producer is the sole writer of `head_` and the consumer is the sole
+// writer of `tail_`; each side only ever reads the other's index. Because no
+// index is written by more than one thread, the operations use plain atomic
+// loads/stores (no CAS, no mutex, no condition variable) and are wait-free for
+// their owning thread: `try_push` and `try_pop` each complete in a bounded,
+// fixed number of steps and never block. Release stores publish completed
+// payload bytes that the opposite side observes with acquire loads, which also
+// prevents a slot from being reused while it is still being copied. This is the
+// one queue in the library that carries a lock-free claim.
 template <std::size_t MaxPayloadSize>
 class SPSCQueue {
 public:

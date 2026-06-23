@@ -25,6 +25,15 @@ verified, wait-free, universally lock-free, or fastest. `SPSCQueue` is the
 library's lock-free queue. Mutex-free describes the new MPMC implementation; it
 is not used as a synonym for a progress guarantee.
 
+Line64 includes a per-cell atomic-versioned SPMC implementation that extends the
+project beyond the original conservative multicast queue. It is realized as a
+new, separate queue type (`VersionedSPMCQueue<N>`) implemented as a per-cell
+seqlock; it is added alongside, not as a rewrite of, the conservative
+mutex-protected `SPMCMulticastQueue<N>`. `VersionedSPMCQueue` is documented as
+atomic-versioned / mutex-free with a wait-free single-producer publish and
+bounded-step non-blocking consumer reads; the library does not extend a blanket
+lock-free claim to it.
+
 Release line: `v0.1.0` is the initial public release tag. Current `main`
 prepares `v0.1.1`, which carries post-release cache-layout consistency,
 sanitizer CI visibility, and package metadata alignment while retaining the
@@ -36,6 +45,7 @@ existing compatibility names.
 | --- | --- | --- | --- | --- |
 | `BlockingQueue<T>` | Multiple producers and consumers | Work sharing | Bounded; blocking or `full`/`empty`; close and drain | Mutex and condition variables |
 | `SPSCQueue<N>` | Exactly one producer and one consumer | Work sharing | Bounded; `full`/`empty`; no close | Lock-free acquire/release head and tail atomics |
+| `VersionedSPMCQueue<N>` | One producer and registered consumers | Multicast retained history | Overwrites old history; consumers detect lag/overwrite | Per-cell atomic version (seqlock); no mutex |
 | `SPMCMulticastQueue<N>` | One producer and registered consumers | Multicast retained history | Overwrites old history; consumers detect lag | One mutex across publication and copy |
 | `MPMCQueue<N>` | Multiple producers and consumers | Work sharing | Power-of-two bounded; try-only `full`/`empty`; no close | Sequence-numbered cells and CAS position claims; no mutex |
 
@@ -118,6 +128,7 @@ Current non-goals:
 |   |-- result.h
 |   |-- spmc_multicast_queue.h
 |   |-- spsc_queue.h
+|   |-- versioned_spmc_queue.h
 |   `-- version.h
 |-- stress/
 |   |-- CMakeLists.txt
@@ -138,6 +149,7 @@ Current non-goals:
     |-- mpmc_queue_tests.cpp
     |-- spmc_multicast_queue_tests.cpp
     |-- spsc_queue_tests.cpp
+    |-- versioned_spmc_queue_tests.cpp
     |-- test_main.cpp
     |-- test_support.h
     |-- header_self_sufficiency/...
@@ -219,6 +231,35 @@ oldest retained sequence, and can continue.
 A short destination leaves that consumer's cursor unchanged. Consumer handles
 contain a non-owning queue pointer and must not outlive the queue. One handle
 must not be called concurrently. There is no close or blocking operation.
+
+## 9a. VersionedSPMCQueue Contract
+
+`VersionedSPMCQueue<N>` exposes the same retained-history multicast contract as
+`SPMCMulticastQueue<N>` — one producer, independent move-only consumer cursors,
+no history replay for late consumers, lag/overwrite recovery to the oldest
+retained sequence, short-destination leaving the cursor unchanged — but is
+mutex-free. It is the versioned SPMC path in Line64.
+
+Implementation: each ring cell carries its own atomic version counter used as a
+seqlock. The single producer bumps the version to odd (write in progress),
+stores the sequence/size/payload, then bumps it to the next even value (stable).
+A consumer reads the version, copies the cell, then re-reads the version; if the
+value changed or was odd, the snapshot was torn by an overwrite and is discarded
+(reported as `overwritten`) rather than returned, so partial payloads are never
+delivered. Every guarded cell field (`version`, `sequence`, `size`, and the
+payload bytes) is a relaxed atomic accessed under release/acquire fences, so an
+overlapping read is always a well-defined atomic access and never UB; this also
+keeps the queue clean under ThreadSanitizer, which does not model
+`std::atomic_thread_fence` over plain memory.
+
+Progress: `try_publish` is wait-free for the single producer (no spinning). Each
+`try_read` is non-blocking and completes within a bounded number of seqlock
+retries; under sustained producer pressure it returns `overwritten`/`empty`
+rather than spinning forever. The library documents this as atomic-versioned /
+mutex-free and does **not** make a blanket lock-free claim for it. The API mirrors
+the sibling queue (`try_publish`, `register_consumer`/`make_consumer`,
+`Consumer::try_read`) with `try_push`/`try_pop` aliases for the user-facing
+producer/consumer sketch.
 
 ## 10. MPMCQueue Contract
 
@@ -358,6 +399,12 @@ The dependency-free test executable covers:
   retryable short output, and concurrent payload integrity;
 - SPMC: independent cursors, post-publication registration, retained history,
   lag recovery, moves, zero payload, and retryable short output;
+- VersionedSPMC: construction/zero-capacity rejection, single- and multi-consumer
+  multicast observation, empty/full/wraparound, lag and overwrite detection,
+  payload-boundary and short-output handling, late registration, moved handle
+  invalidation, version-transition correctness over repeated cycles, and a
+  yield-heavy concurrent stress asserting monotonic per-consumer sequences,
+  payload integrity, and torn-read rejection;
 - MPMC: capacity 0/1/non-power-of-two rejection, exact/oversized payloads,
   FIFO, full/empty, wraparound, consuming short output, and 50,000 checked
   messages with four producers and four consumers;
@@ -406,8 +453,10 @@ or corrupt reads.
 MPMC stress uses multiple producers and consumers, full/empty retry counters,
 external producer completion, final drain, duplicate detection, payload
 validation, and published/consumed membership comparison. MPMC/all capacity
-must be a power of two greater than one. Short reliable stress smokes for SPSC,
-blocking, SPMC, and MPMC are registered with CTest.
+must be a power of two greater than one. The `versioned_spmc` queue runs through
+the same multicast stress harness as `spmc` (one producer, many consumers, lag
+permitted, corrupt/torn reads rejected). Short reliable stress smokes for SPSC,
+blocking, SPMC, versioned SPMC, and MPMC are registered with CTest.
 
 The seed reproduces data and intentional yield decisions, not operating-system
 thread scheduling. Stress is evidence over many operations, not exhaustive
@@ -423,7 +472,11 @@ any validation error makes the process fail.
 Default scenarios are grouped by delivery semantics:
 
 - SPSC exclusive handoff: Line64 SPSC, 1 producer / 1 consumer;
-- SPMC multicast retained history: Line64 SPMC, 1 producer / 1, 3, and 10 consumers;
+- SPMC multicast retained history: Line64 SPMC and the atomic-versioned
+  `VersionedSPMCQueue`, 1 producer / 1, 3, and 10 consumers. Both report under
+  the same `spmc_multicast_retained_history` group because their delivery
+  semantics match; multicast aggregate reads remain separate from exclusive-pop
+  throughput and are never compared against SPSC or MPMC;
 - MPMC exclusive-pop work sharing: Line64 blocking and mutex-free MPMC,
   1/1, 2/2, 4/4, and 8/8;
 - optional SPSC baselines: Boost SPSC and rigtorp SPSC, 1 producer / 1 consumer;

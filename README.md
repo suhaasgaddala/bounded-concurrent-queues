@@ -5,8 +5,14 @@
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Super-fast C++20 bounded concurrent queues: lock-free SPSC, multicast SPMC,
-mutex-free MPMC, and mutex-backed MPMC.
+Super-fast bounded concurrent queues for C++20: lock-free SPSC, atomic-versioned
+SPMC, multicast SPMC, mutex-free MPMC, and mutex-backed baselines.
+
+Line64 is a C++20 bounded concurrent queue library with lock-free SPSC,
+atomic-versioned mutex-free SPMC, mutex-free MPMC, and mutex-backed blocking
+queue implementations. The atomic-versioned SPMC path uses per-cell atomic
+versioning to reduce global-index contention, complementing the conservative
+multicast queue and the mutex-free MPMC and mutex-backed blocking baselines.
 
 The project studies bounded in-memory queues with named producer and consumer
 contracts, fixed-size payload storage where applicable, explicit operation
@@ -28,12 +34,18 @@ rules.
 
 ## Queue Contracts
 
-| Queue | Contract | Implementation |
-| --- | --- | --- |
-| `SPSCQueue<N>` | Bounded single-producer/single-consumer queue | Lock-free fixed-payload ring for exclusive handoff between one producer and one consumer. |
-| `SPMCMulticastQueue<N>` | Bounded single-producer/multiple-consumer multicast queue | Conservative mutex-protected publication, cursor, and payload-copy protocol |
-| `MPMCQueue<N>` | Bounded multiple-producer/multiple-consumer work-sharing queue | Mutex-free, power-of-two sequence-cell ring with CAS position claims |
-| `BlockingQueue<T>` | Bounded multiple-producer/multiple-consumer work-sharing queue | Mutex-backed condition-variable baseline with close and drain behavior |
+| Queue | Producers | Consumers | Synchronization | Progress / role |
+|---|---:|---:|---|---|
+| `SPSCQueue<N>` | 1 | 1 | Atomics | Lock-free SPSC exclusive handoff |
+| `VersionedSPMCQueue<N>` | 1 | many | Per-cell atomic versioning | Atomic-versioned mutex-free SPMC path |
+| `SPMCMulticastQueue<N>` | 1 | many | Mutex-protected publication/copy | Conservative multicast retained-history queue |
+| `MPMCQueue<N>` | many | many | Atomics/CAS, no mutex | Mutex-free MPMC; no lock-free/wait-free claim |
+| `BlockingQueue<T>` | many | many | Mutex + condition variable | Mutex-backed blocking baseline |
+
+`VersionedSPMCQueue<N>` and `SPMCMulticastQueue<N>` expose the same multicast
+retained-history contract; they differ only in synchronization. The versioned
+queue is mutex-free and uses a per-cell seqlock, while the multicast queue uses
+a single mutex across publication and copy.
 
 The fixed-payload queues accept `std::span`, reject oversized messages, and
 return explicit status, byte-count, and logical-sequence results. Queue
@@ -46,6 +58,7 @@ and the MPMC short-destination policy consumes an already claimed message.
 flowchart TD
     LIB["Bounded Concurrent Queues for C++20"]
     LIB --> SPSC["SPSCQueue<br/>1 producer / 1 consumer<br/>work sharing"]
+    LIB --> VSPMC["VersionedSPMCQueue<br/>1 producer / many cursors<br/>atomic-versioned multicast"]
     LIB --> SPMC["SPMCMulticastQueue<br/>1 producer / many cursors<br/>multicast retained history"]
     LIB --> MPMC["MPMCQueue<br/>many producers / many consumers<br/>mutex-free work sharing"]
     LIB --> BLOCK["BlockingQueue<br/>many producers / many consumers<br/>blocking work sharing"]
@@ -93,6 +106,36 @@ Each registered consumer advances an independent cursor. Reading does not
 remove a publication for other consumers. Slow consumers can lose overwritten
 history, receive `consumer_lagged`, and continue from the oldest retained
 sequence.
+
+## Atomic-versioned mutex-free SPMC path
+
+`VersionedSPMCQueue<N>` is the mutex-free version of the multicast contract. It
+adds a per-cell atomic-versioned SPMC implementation alongside Line64's existing
+queue families. Instead of one global mutex, each ring cell owns an atomic
+version counter used as a seqlock:
+
+```mermaid
+flowchart LR
+    P["Single producer"] -->|"version+1 (odd: writing)"| CELL["Ring cell<br/>atomic version + payload"]
+    CELL -->|"version+2 (even: stable)"| PUB["published boundary"]
+    PUB --> CA["Consumer A cursor"]
+    PUB --> CB["Consumer B cursor"]
+    CA -->|"copy + re-check version"| OA["accept or detect overwrite"]
+    CB -->|"copy + re-check version"| OB["accept or detect overwrite"]
+```
+
+A consumer reads a cell's version, copies the payload, then re-reads the
+version; if the value changed (or was odd) the snapshot was torn by an
+overwrite and is discarded rather than returned. Every cell field is a relaxed
+atomic guarded by release/acquire fences, so an overlapping read is always a
+well-defined atomic access and never undefined behaviour.
+
+Progress and claims for this queue are intentionally scoped: `try_publish` from
+the single producer is wait-free, and each `try_read` is non-blocking and
+completes in a bounded number of steps — under producer pressure it returns
+`overwritten` or `consumer_lagged` instead of spinning. The library documents
+this as the **atomic-versioned / mutex-free** SPMC path and does not extend a
+blanket lock-free claim to it.
 
 ## Global-index SPMC design exploration
 
@@ -298,6 +341,36 @@ Multiple producer and consumer threads may use the MPMC queue concurrently.
 Operations are try-only. There is no close operation. A destination shorter
 than the claimed message returns `message_too_large` and consumes that message.
 
+## Versioned SPMC Usage
+
+```cpp
+#include <array>
+#include <cstddef>
+#include <span>
+
+#include "orbitqueue/versioned_spmc_queue.h"
+
+orbitqueue::VersionedSPMCQueue<64> queue(1024);
+auto reader = queue.make_consumer(); // register before publishing to observe it
+
+const std::array payload{std::byte{0x10}, std::byte{0x20}};
+const auto write = queue.try_publish(std::span<const std::byte>{payload});
+
+std::array<std::byte, 64> destination{};
+const auto read = reader.try_read(std::span<std::byte>{destination});
+
+if (read.status == orbitqueue::QueueStatus::consumer_lagged ||
+    read.status == orbitqueue::QueueStatus::overwritten) {
+    // A slow consumer fell behind; the cursor resumed at the oldest retained
+    // sequence. Handle the gap as appropriate.
+}
+```
+
+Exactly one producer thread may call `try_publish`. Each registered consumer
+owns an independent cursor; reading does not consume a publication for the
+other consumers (multicast). `try_publish`/`make_consumer`/`try_read` also have
+`try_push`/`register_consumer`/`try_pop` aliases.
+
 ## Install and Consume
 
 ```sh
@@ -326,6 +399,8 @@ The repository includes:
 - deterministic boundary and concurrent queue tests;
 - isolated public-header compilation checks;
 - a 50,000-message MPMC contention test with uniqueness and checksum checks;
+- a yield-heavy `VersionedSPMCQueue` stress test asserting monotonic per-consumer
+  sequences, version-transition correctness, and torn-read rejection;
 - seeded stress scenarios with sequence-bearing, reproducible payloads;
 - separate ASan/UBSan and TSan build paths;
 - an install, `find_package`, compile, and runtime downstream-package test;
@@ -351,9 +426,13 @@ overhead. See [docs/benchmarking.md](docs/benchmarking.md).
 ## Non-Claims
 
 - The library is not production-ready or formally verified.
-- Not all queues are lock-free. `SPSCQueue` is lock-free, `MPMCQueue` is
-  mutex-free but does not claim lock-free or wait-free progress,
-  `SPMCMulticastQueue` is mutex-protected, and `BlockingQueue` is mutex-backed.
+- Only specific queue types carry lock-free claims. `SPSCQueue` is lock-free.
+  `VersionedSPMCQueue` is documented according to the progress guarantee
+  supported by its implementation: atomic-versioned and mutex-free, with a
+  wait-free single-producer publish and bounded-step, non-blocking consumer
+  reads, but no blanket lock-free claim. `MPMCQueue` remains mutex-free without
+  a lock-free/wait-free claim, `SPMCMulticastQueue` is mutex-protected, and
+  `BlockingQueue` is mutex-backed.
 - Benchmark completion is not proof of correctness.
 - Throughput from different delivery semantics is not directly comparable.
 - Position and logical-sequence exhaustion remains unsupported.
