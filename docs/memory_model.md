@@ -50,6 +50,12 @@ slot. This prevents producer overwrite while the consumer is still copying.
 An undersized destination does not release the slot: `tail_` is unchanged, so
 the consumer can retry safely with a larger span.
 
+`head_` and `tail_` use the same destructive-interference-size cache-layout
+utility as the MPMC hot counters. They are padded and aligned to reduce false
+sharing risk between producer and consumer cache lines. This does not change
+the acquire/release ownership argument or provide a performance guarantee;
+actual cache-line behavior remains platform-dependent.
+
 ### Observer methods
 
 `empty()` and `full()` use acquire loads, but they are observations rather than
@@ -116,12 +122,12 @@ also has no close operation. An undersized destination consumes the claimed
 message and releases the cell because the dequeue position cannot safely be
 rolled back. Full details are in [mpmc_queue.md](mpmc_queue.md).
 
-The MPMC storage layout uses `std::hardware_destructive_interference_size`
-when available, with a 64-byte fallback otherwise. Ring cells and the hot
-enqueue/dequeue position counters are aligned and padded, with static
-assertions checking that the selected layout is honored. This is a false-sharing
-risk reduction for cache locality, not a correctness requirement or formal
-performance guarantee.
+SPSC and MPMC share a cache-layout utility that uses
+`std::hardware_destructive_interference_size` when available, with a 64-byte
+fallback otherwise. MPMC ring cells and the hot enqueue/dequeue position
+counters are aligned and padded, with static assertions checking that the
+selected layout is honored. This is a false-sharing risk reduction for cache
+locality, not a correctness requirement or formal performance guarantee.
 
 ## Why no mutex is not the same as lock-free
 

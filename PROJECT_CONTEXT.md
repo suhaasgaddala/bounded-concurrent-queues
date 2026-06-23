@@ -98,6 +98,8 @@ Current non-goals:
 |   |-- research_motivation.md
 |   `-- stress_testing.md
 |-- include/orbitqueue/
+|   |-- detail/
+|   |   `-- cache_layout.h
 |   |-- blocking_queue.h
 |   |-- fixed_message.h
 |   |-- mpmc_queue.h
@@ -174,6 +176,12 @@ publishes the incremented head with release ordering. The consumer acquires the
 head before copying payload bytes and releases its incremented tail after the
 copy, allowing safe slot reuse.
 
+`head_` and `tail_` use the shared destructive-interference-size cache-layout
+utility and instantiate `PaddedAtomic<std::uint64_t>`. Compile-time assertions
+verify the exact padded atomic type. This reduces false-sharing risk between
+producer and consumer counters, but it is not a correctness requirement or
+performance guarantee.
+
 Full never overwrites unread data. A short destination does not advance the
 single consumer tail, so retry with a larger span is supported. `empty()` and
 `full()` are advisory concurrent observations, not reservations. The queue has
@@ -208,9 +216,10 @@ adapted from Dmitry Vyukov's array-based sequence-cell algorithm.
 - Construction allocates one `Cell[]`; try operations allocate nothing.
 - Every cell holds an atomic `std::size_t` generation and one `FixedMessage<N>`.
 - `mask = capacity - 1` maps positions to cells.
-- Cells and hot enqueue/dequeue position counters are aligned and padded using
-  `std::hardware_destructive_interference_size` when available, with a 64-byte
-  fallback otherwise.
+- Cells and hot enqueue/dequeue position counters use the shared
+  destructive-interference-size cache-layout utility, which selects
+  `std::hardware_destructive_interference_size` when available and falls back
+  to 64 bytes otherwise.
 - Static assertions verify the cell and padded-counter layout assumptions.
   This reduces false-sharing risk but is not a formal performance guarantee.
 

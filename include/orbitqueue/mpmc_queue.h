@@ -4,10 +4,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <new>
 #include <span>
 #include <stdexcept>
 
+#include "orbitqueue/detail/cache_layout.h"
 #include "orbitqueue/fixed_message.h"
 
 namespace orbitqueue {
@@ -97,30 +97,18 @@ public:
     }
 
 private:
-#if defined(__cpp_lib_hardware_interference_size)
-    static constexpr std::size_t cache_line_size =
-        std::hardware_destructive_interference_size;
-#else
-    static constexpr std::size_t cache_line_size = 64;
-#endif
-
-    struct alignas(cache_line_size) Cell {
+    struct alignas(detail::destructive_interference_size) Cell {
         std::atomic<std::size_t> sequence{};
         FixedMessage<MaxPayloadSize> message;
-    };
-
-    struct alignas(cache_line_size) PaddedAtomicSize {
-        std::atomic<std::size_t> value{};
     };
 
     // Cell alignment reduces false sharing between adjacent ring cells, and
     // padded counters reduce producer/consumer position-counter false sharing.
     // This is a cache-locality mitigation, not a correctness guarantee; actual
     // hardware cache-line behavior remains platform-dependent.
-    static_assert(alignof(Cell) >= cache_line_size);
-    static_assert(sizeof(Cell) % cache_line_size == 0);
-    static_assert(alignof(PaddedAtomicSize) >= cache_line_size);
-    static_assert(sizeof(PaddedAtomicSize) % cache_line_size == 0);
+    static_assert(alignof(Cell) >= detail::destructive_interference_size);
+    static_assert(sizeof(Cell) % detail::destructive_interference_size == 0);
+    static_assert(detail::padded_atomic_layout_is_valid<std::size_t>);
 
     [[nodiscard]] static std::size_t validate_capacity(
         const std::size_t capacity) {
@@ -134,8 +122,8 @@ private:
     const std::size_t capacity_;
     const std::size_t mask_;
     std::unique_ptr<Cell[]> cells_;
-    PaddedAtomicSize enqueue_pos_{};
-    PaddedAtomicSize dequeue_pos_{};
+    detail::PaddedAtomic<std::size_t> enqueue_pos_{};
+    detail::PaddedAtomic<std::size_t> dequeue_pos_{};
 };
 
 } // namespace orbitqueue

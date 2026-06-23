@@ -41,6 +41,10 @@ all slots are occupied. Payloads larger than the template limit are rejected.
 Sequences start at one and increase in FIFO order. There is no close or
 blocking operation in this initial API.
 
+The producer-owned head and consumer-owned tail counters are padded and aligned
+with the shared cache-layout utility to reduce false sharing risk. This does
+not change memory ordering or provide a performance guarantee.
+
 Calls from additional producers or consumers violate the contract. Sequence
 counter exhaustion is not handled; practical applications must not approach
 `uint64_t` wraparound.
