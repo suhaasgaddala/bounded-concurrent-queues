@@ -406,7 +406,7 @@ find_package(OrbitQueue CONFIG REQUIRED)
 target_link_libraries(your_target PRIVATE OrbitQueue::orbitqueue)
 ```
 
-The public project and repository name is `bounded-concurrent-queues`, and the
+The public project and repository name is `Line64`, and the
 CMake project version follows the public release line. The installed package
 name, `OrbitQueue::orbitqueue` target, `include/orbitqueue` path, `orbitqueue`
 namespace, version macros, and `ORBITQUEUE_*` CMake options are retained as
