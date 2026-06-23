@@ -14,6 +14,24 @@ results, and benchmark scenarios that preserve the meaning of each delivery
 model. Correctness checks and synchronization rationale are part of the design,
 not inferred from throughput.
 
+## Why bounded queues?
+
+Concurrent systems need predictable ways to move data between threads without
+unbounded memory growth or unclear ownership. Bounded queues are useful because
+they make the tradeoffs explicit:
+
+- Fixed capacity keeps memory usage predictable under load.
+- Named contracts separate SPSC, multicast SPMC, blocking MPMC, and mutex-free
+  MPMC behavior instead of treating every queue as interchangeable.
+- Work-sharing queues deliver each message to one consumer; multicast retained
+  history lets multiple consumers observe the same publication independently.
+- Atomic ownership and cache-layout care keep the SPSC and mutex-free MPMC hot
+  paths compact without adding a mutex to those paths.
+- The blocking and multicast queues intentionally use conservative
+  synchronization where that makes the contract easier to reason about.
+- Tests, stress runs, sanitizers, models, and benchmark validation document what
+  is checked instead of relying on throughput numbers alone.
+
 ## At a glance
 
 - Header-only C++20 library with no mandatory third-party dependency.
