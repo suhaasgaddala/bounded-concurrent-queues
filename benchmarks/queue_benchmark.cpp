@@ -373,7 +373,7 @@ void print_usage(std::ostream& output) {
                 "Line64::VersionedSPMCQueue",
                 "spmc_multicast_retained_history",
                 "multicast_retained_history", 1, consumers,
-                "OrbitQueue-style atomic-versioned SPMC multicast; aggregate "
+                "atomic-versioned mutex-free SPMC multicast; aggregate "
                 "observations are reported separately"});
         }
     }

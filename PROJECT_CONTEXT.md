@@ -25,12 +25,8 @@ verified, wait-free, universally lock-free, or fastest. `SPSCQueue` is the
 library's lock-free queue. Mutex-free describes the new MPMC implementation; it
 is not used as a synonym for a progress guarantee.
 
-Lineage: Line64 ports and modernizes the original
-[OrbitQueue](https://github.com/suhaasgaddala/OrbitQueue) project (MIT License,
-Copyright (c) 2025 Reza Tabrizi), which explored lock-free SPSC and per-block
-atomic-versioned SPMC ring buffers. The original repository is the author's own
-prior work; its useful technical ideas are reused and adapted into Line64 style,
-with attribution preserved. The OrbitQueue-style SPMC path is realized here as a
+Line64 includes a per-cell atomic-versioned SPMC implementation that extends the
+project beyond the original conservative multicast queue. It is realized as a
 new, separate queue type (`VersionedSPMCQueue<N>`) implemented as a per-cell
 seqlock; it is added alongside, not as a rewrite of, the conservative
 mutex-protected `SPMCMulticastQueue<N>`. `VersionedSPMCQueue` is documented as
@@ -49,7 +45,7 @@ existing compatibility names.
 | --- | --- | --- | --- | --- |
 | `BlockingQueue<T>` | Multiple producers and consumers | Work sharing | Bounded; blocking or `full`/`empty`; close and drain | Mutex and condition variables |
 | `SPSCQueue<N>` | Exactly one producer and one consumer | Work sharing | Bounded; `full`/`empty`; no close | Lock-free acquire/release head and tail atomics |
-| `VersionedSPMCQueue<N>` | One producer and registered consumers | Multicast retained history | Overwrites old history; consumers detect lag/overwrite | Per-cell atomic version (seqlock); no mutex; OrbitQueue-style |
+| `VersionedSPMCQueue<N>` | One producer and registered consumers | Multicast retained history | Overwrites old history; consumers detect lag/overwrite | Per-cell atomic version (seqlock); no mutex |
 | `SPMCMulticastQueue<N>` | One producer and registered consumers | Multicast retained history | Overwrites old history; consumers detect lag | One mutex across publication and copy |
 | `MPMCQueue<N>` | Multiple producers and consumers | Work sharing | Power-of-two bounded; try-only `full`/`empty`; no close | Sequence-numbered cells and CAS position claims; no mutex |
 
@@ -236,13 +232,13 @@ A short destination leaves that consumer's cursor unchanged. Consumer handles
 contain a non-owning queue pointer and must not outlive the queue. One handle
 must not be called concurrently. There is no close or blocking operation.
 
-## 9a. VersionedSPMCQueue Contract (OrbitQueue-style)
+## 9a. VersionedSPMCQueue Contract
 
 `VersionedSPMCQueue<N>` exposes the same retained-history multicast contract as
 `SPMCMulticastQueue<N>` — one producer, independent move-only consumer cursors,
 no history replay for late consumers, lag/overwrite recovery to the oldest
 retained sequence, short-destination leaving the cursor unchanged — but is
-mutex-free. It is the OrbitQueue-style path ported into Line64.
+mutex-free. It is the versioned SPMC path in Line64.
 
 Implementation: each ring cell carries its own atomic version counter used as a
 seqlock. The single producer bumps the version to odd (write in progress),
@@ -476,7 +472,7 @@ any validation error makes the process fail.
 Default scenarios are grouped by delivery semantics:
 
 - SPSC exclusive handoff: Line64 SPSC, 1 producer / 1 consumer;
-- SPMC multicast retained history: Line64 SPMC and the OrbitQueue-style
+- SPMC multicast retained history: Line64 SPMC and the atomic-versioned
   `VersionedSPMCQueue`, 1 producer / 1, 3, and 10 consumers. Both report under
   the same `spmc_multicast_retained_history` group because their delivery
   semantics match; multicast aggregate reads remain separate from exclusive-pop

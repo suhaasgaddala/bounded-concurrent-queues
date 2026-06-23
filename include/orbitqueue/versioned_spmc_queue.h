@@ -1,14 +1,12 @@
 #pragma once
 
-// VersionedSPMCQueue ports the per-cell atomic-versioning idea from the
-// original OrbitQueue project (https://github.com/suhaasgaddala/OrbitQueue,
-// MIT License, Copyright (c) 2025 Reza Tabrizi) into the Line64 fixed-payload
-// queue style. OrbitQueue localizes synchronization by giving every ring block
-// its own atomic version counter instead of a pair of globally shared indices.
-// Line64 adapts that idea into a canonical seqlock: each cell uses an even/odd
-// atomic version where even means "stable / readable" and odd means "publish in
-// progress", and consumers re-validate the version after copying so a torn read
-// is detected and reported instead of returned. The result is a mutex-free
+// Per-cell atomic-versioned SPMC queue.
+//
+// Synchronization is localized to each ring cell instead of a global mutex or a
+// pair of shared indices: every cell carries its own even/odd atomic version
+// (a seqlock), where even means "stable / readable" and odd means "publish in
+// progress". Consumers re-validate the version after copying, so a torn read is
+// detected and reported instead of returned. The result is a mutex-free
 // single-producer/multiple-consumer multicast queue whose observable contract
 // matches the conservative SPMCMulticastQueue, but whose synchronization is
 // per-cell atomic versioning rather than a global mutex.
@@ -43,7 +41,7 @@ namespace orbitqueue {
 //     the producer is overwriting the requested cell faster than a consumer can
 //     copy it, `try_read` returns `overwritten` instead of spinning forever.
 //   * The library does not make a blanket lock-free claim for this queue; it is
-//     documented as the OrbitQueue-style atomic-versioned / mutex-free SPMC path.
+//     documented as the atomic-versioned / mutex-free SPMC path.
 template <std::size_t MaxPayloadSize>
 class VersionedSPMCQueue {
 public:

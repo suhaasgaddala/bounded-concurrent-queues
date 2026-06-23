@@ -5,17 +5,14 @@
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Super-fast C++20 bounded concurrent queues: lock-free SPSC, atomic-versioned
-SPMC, multicast SPMC, mutex-free MPMC, and mutex-backed MPMC.
+Super-fast bounded concurrent queues for C++20: lock-free SPSC, atomic-versioned
+SPMC, multicast SPMC, mutex-free MPMC, and mutex-backed baselines.
 
-Line64 ports and modernizes the original
-[OrbitQueue](https://github.com/suhaasgaddala/OrbitQueue) SPSC/SPMC lock-free
-exploration into a broader C++20 bounded queue library. The OrbitQueue-style
-path uses per-cell atomic versioning to reduce global-index contention, while
-Line64 also includes mutex-free MPMC and mutex-backed blocking baselines.
-OrbitQueue is MIT-licensed (Copyright (c) 2025 Reza Tabrizi); the per-cell
-versioning idea is adapted into Line64 style with attribution preserved in
-`include/orbitqueue/versioned_spmc_queue.h`.
+Line64 is a C++20 bounded concurrent queue library with lock-free SPSC,
+atomic-versioned mutex-free SPMC, mutex-free MPMC, and mutex-backed blocking
+queue implementations. The atomic-versioned SPMC path uses per-cell atomic
+versioning to reduce global-index contention, complementing the conservative
+multicast queue and the mutex-free MPMC and mutex-backed blocking baselines.
 
 The project studies bounded in-memory queues with named producer and consumer
 contracts, fixed-size payload storage where applicable, explicit operation
@@ -40,15 +37,15 @@ rules.
 | Queue | Producers | Consumers | Synchronization | Progress / role |
 |---|---:|---:|---|---|
 | `SPSCQueue<N>` | 1 | 1 | Atomics | Lock-free SPSC exclusive handoff |
-| `VersionedSPMCQueue<N>` | 1 | many | Per-cell atomic versioning | OrbitQueue-style atomic-versioned SPMC path |
+| `VersionedSPMCQueue<N>` | 1 | many | Per-cell atomic versioning | Atomic-versioned mutex-free SPMC path |
 | `SPMCMulticastQueue<N>` | 1 | many | Mutex-protected publication/copy | Conservative multicast retained-history queue |
 | `MPMCQueue<N>` | many | many | Atomics/CAS, no mutex | Mutex-free MPMC; no lock-free/wait-free claim |
 | `BlockingQueue<T>` | many | many | Mutex + condition variable | Mutex-backed blocking baseline |
 
 `VersionedSPMCQueue<N>` and `SPMCMulticastQueue<N>` expose the same multicast
 retained-history contract; they differ only in synchronization. The versioned
-queue is mutex-free and uses an OrbitQueue-style per-cell seqlock, while the
-multicast queue uses a single mutex across publication and copy.
+queue is mutex-free and uses a per-cell seqlock, while the multicast queue uses
+a single mutex across publication and copy.
 
 The fixed-payload queues accept `std::span`, reject oversized messages, and
 return explicit status, byte-count, and logical-sequence results. Queue
@@ -110,11 +107,12 @@ remove a publication for other consumers. Slow consumers can lose overwritten
 history, receive `consumer_lagged`, and continue from the oldest retained
 sequence.
 
-## OrbitQueue-style atomic-versioned SPMC path
+## Atomic-versioned mutex-free SPMC path
 
-`VersionedSPMCQueue<N>` is the mutex-free evolution of the multicast contract,
-ported from the original OrbitQueue project. Instead of one global mutex, each
-ring cell owns an atomic version counter used as a seqlock:
+`VersionedSPMCQueue<N>` is the mutex-free version of the multicast contract. It
+adds a per-cell atomic-versioned SPMC implementation alongside Line64's existing
+queue families. Instead of one global mutex, each ring cell owns an atomic
+version counter used as a seqlock:
 
 ```mermaid
 flowchart LR
@@ -136,8 +134,8 @@ Progress and claims for this queue are intentionally scoped: `try_publish` from
 the single producer is wait-free, and each `try_read` is non-blocking and
 completes in a bounded number of steps — under producer pressure it returns
 `overwritten` or `consumer_lagged` instead of spinning. The library documents
-this as the OrbitQueue-style **atomic-versioned / mutex-free** SPMC path and
-does not extend a blanket lock-free claim to it.
+this as the **atomic-versioned / mutex-free** SPMC path and does not extend a
+blanket lock-free claim to it.
 
 ## Global-index SPMC design exploration
 
@@ -429,12 +427,12 @@ overhead. See [docs/benchmarking.md](docs/benchmarking.md).
 
 - The library is not production-ready or formally verified.
 - Only specific queue types carry lock-free claims. `SPSCQueue` is lock-free.
-  The OrbitQueue-style `VersionedSPMCQueue` is documented according to the
-  progress guarantee supported by its implementation: atomic-versioned and
-  mutex-free, with a wait-free single-producer publish and bounded-step,
-  non-blocking consumer reads, but no blanket lock-free claim. `MPMCQueue`
-  remains mutex-free without a lock-free/wait-free claim,
-  `SPMCMulticastQueue` is mutex-protected, and `BlockingQueue` is mutex-backed.
+  `VersionedSPMCQueue` is documented according to the progress guarantee
+  supported by its implementation: atomic-versioned and mutex-free, with a
+  wait-free single-producer publish and bounded-step, non-blocking consumer
+  reads, but no blanket lock-free claim. `MPMCQueue` remains mutex-free without
+  a lock-free/wait-free claim, `SPMCMulticastQueue` is mutex-protected, and
+  `BlockingQueue` is mutex-backed.
 - Benchmark completion is not proof of correctness.
 - Throughput from different delivery semantics is not directly comparable.
 - Position and logical-sequence exhaustion remains unsupported.
