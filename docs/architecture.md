@@ -64,12 +64,14 @@ and package compatibility remains intentionally unchanged:
 
 - installed package: `OrbitQueue`;
 - exported target: `OrbitQueue::orbitqueue`;
+- public-name alias: `BoundedConcurrentQueues::orbitqueue`;
 - include path: `include/orbitqueue`;
 - C++ namespace: `orbitqueue`;
 - build options and version macros: `ORBITQUEUE_*`.
 
-Renaming those surfaces would require a separate compatibility migration. The
-current interface target still carries C++20, include paths, warnings, and
+These compatibility names are retained for existing consumers and are not old
+project branding. The CMake project version follows the public release line.
+The current interface target still carries C++20, include paths, warnings, and
 optional sanitizer flags to consumers.
 
 ## Measurement Boundary

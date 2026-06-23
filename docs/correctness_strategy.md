@@ -18,8 +18,8 @@ failures but cover a limited set of thread schedules.
 Each public header is compiled in an isolated translation unit to catch missing
 includes. The downstream package test installs to an isolated prefix, discovers
 the compatibility package with `find_package(OrbitQueue)`, builds against
-`OrbitQueue::orbitqueue`, and runs a consumer. These checks protect integration
-rather than concurrency semantics.
+`OrbitQueue::orbitqueue` and `BoundedConcurrentQueues::orbitqueue`, and runs
+consumers. These checks protect integration rather than concurrency semantics.
 
 ### Deterministic-input stress tests
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(BoundedConcurrentQueues VERSION 2.1.0 LANGUAGES CXX)
+project(BoundedConcurrentQueues VERSION 0.1.1 LANGUAGES CXX)
 
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
@@ -17,6 +17,7 @@ set(ORBITQUEUE_SANITIZERS "address,undefined" CACHE STRING
 
 add_library(orbitqueue INTERFACE)
 add_library(OrbitQueue::orbitqueue ALIAS orbitqueue)
+add_library(BoundedConcurrentQueues::orbitqueue ALIAS orbitqueue)
 target_compile_features(orbitqueue INTERFACE cxx_std_20)
 target_include_directories(orbitqueue INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

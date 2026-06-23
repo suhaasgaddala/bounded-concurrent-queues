@@ -24,6 +24,11 @@ The library is experimental. It is not claimed production-ready, formally
 verified, wait-free, officially lock-free, or fastest. Mutex-free describes the
 new MPMC implementation; it is not used as a synonym for a progress guarantee.
 
+Release line: `v0.1.0` is the initial public release tag. Current `main`
+prepares `v0.1.1`, which carries post-release cache-layout consistency,
+sanitizer CI visibility, and package metadata alignment while retaining the
+existing compatibility names.
+
 ## 2. Current Queue Families
 
 | Type | Producer/consumer model | Delivery | Boundary behavior | Synchronization |
@@ -63,7 +68,8 @@ Current non-goals:
 | --- | --- |
 | GitHub repository | `https://github.com/suhaasgaddala/bounded-concurrent-queues` |
 | Default branch | `main` |
-| Project version | `2.1.0` |
+| Project version | `0.1.1` |
+| Release state | Preparing follow-up `v0.1.1`; `v0.1.0` is the initial public tag |
 | CMake project identifier | `BoundedConcurrentQueues` |
 | Core form | Header-only CMake interface target |
 | Required language | C++20 |
@@ -286,9 +292,11 @@ These are implementation/test-supported invariants, not a formal proof.
 
 ## 12. Build and Package System
 
-The root CMake project is `BoundedConcurrentQueues`. Its compatibility target
-is an interface library with alias `OrbitQueue::orbitqueue`; it exports C++20,
-include paths, warning policy, and optional sanitizer flags.
+The root CMake project is `BoundedConcurrentQueues` at version `0.1.1`, aligned
+with the next public release after the initial `v0.1.0` tag. Its implementation
+target is the `orbitqueue` interface library with aliases
+`OrbitQueue::orbitqueue` and `BoundedConcurrentQueues::orbitqueue`; it exports
+C++20, include paths, warning policy, and optional sanitizer flags.
 
 | CMake option | Default | Effect |
 | --- | --- | --- |
@@ -303,12 +311,14 @@ include paths, warning policy, and optional sanitizer flags.
 The public header install rule covers the entire `include/` tree, including
 `mpmc_queue.h`. CMake package export installs `OrbitQueueConfig.cmake` and a
 version file. The isolated downstream CTest installs to a temporary prefix,
-uses `find_package(OrbitQueue 2 CONFIG REQUIRED)`, includes SPSC and MPMC
-headers, and executes one round trip through each queue.
+uses `find_package(OrbitQueue CONFIG REQUIRED)`, verifies both
+`OrbitQueue::orbitqueue` and `BoundedConcurrentQueues::orbitqueue`, includes
+SPSC and MPMC headers, and executes one round trip through each queue.
 
 The installed package name, exported target, `include/orbitqueue` path,
-`orbitqueue` namespace, `ORBITQUEUE_*` options, and version macros remain stable
-for source/package compatibility. Renaming them is outside this identity-only
+`orbitqueue` namespace, `ORBITQUEUE_*` options, and version macros are retained
+for source/package compatibility. These are compatibility names, not old
+project branding. Broad package renaming remains outside this metadata
 milestone.
 
 Boost remains benchmark-only, optional, and default OFF. Missing Boost headers

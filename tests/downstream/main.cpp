@@ -7,7 +7,9 @@
 #include "orbitqueue/version.h"
 
 int main() {
-    static_assert(orbitqueue::version_major == 2);
+    static_assert(orbitqueue::version_major == 0);
+    static_assert(orbitqueue::version_minor == 1);
+    static_assert(orbitqueue::version_patch == 1);
 
     orbitqueue::SPSCQueue<4> queue(1);
     const std::array payload{std::byte{0x2A}};

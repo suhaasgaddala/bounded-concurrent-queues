@@ -244,13 +244,16 @@ The public display identity changed without breaking the current source and
 package interface. Existing consumers continue to use:
 
 ```cmake
-find_package(OrbitQueue 2 CONFIG REQUIRED)
+find_package(OrbitQueue CONFIG REQUIRED)
 target_link_libraries(your_target PRIVATE OrbitQueue::orbitqueue)
 ```
 
-The installed package name, `include/orbitqueue` path, `orbitqueue` namespace,
-exported target, version macros, and `ORBITQUEUE_*` CMake options are retained
-for compatibility. Renaming those surfaces requires a separate migration plan.
+The public project and repository name is `bounded-concurrent-queues`, and the
+CMake project version follows the public release line. The installed package
+name, `OrbitQueue::orbitqueue` target, `include/orbitqueue` path, `orbitqueue`
+namespace, version macros, and `ORBITQUEUE_*` CMake options are retained as
+compatibility names, not project branding. Consumers may also link the
+compatibility package through `BoundedConcurrentQueues::orbitqueue`.
 
 ## Correctness and Validation
 
