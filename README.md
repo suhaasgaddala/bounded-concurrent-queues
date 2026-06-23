@@ -1,14 +1,29 @@
-# Bounded Concurrent Queues C++20 (spsc, spmc, & mpmc)
+# Bounded Concurrent Queues for C++20
 
-A header-only C++20 library of bounded concurrent queue implementations with
-explicit delivery semantics, deterministic stress validation, sanitizer-backed
-tests, and reproducible benchmarks.
+[![CI](https://github.com/suhaasgaddala/bounded-concurrent-queues/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/suhaasgaddala/bounded-concurrent-queues/actions/workflows/ci.yml)
+[![Verification](https://github.com/suhaasgaddala/bounded-concurrent-queues/actions/workflows/verification.yml/badge.svg?branch=main)](https://github.com/suhaasgaddala/bounded-concurrent-queues/actions/workflows/verification.yml)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+C++20 bounded concurrent queues with SPSC, multicast SPMC, mutex-free MPMC,
+stress tests, sanitizers, and reproducible benchmarks.
 
 The project studies bounded in-memory queues with named producer and consumer
 contracts, fixed-size payload storage where applicable, explicit operation
 results, and benchmark scenarios that preserve the meaning of each delivery
 model. Correctness checks and synchronization rationale are part of the design,
 not inferred from throughput.
+
+## At a glance
+
+- Header-only C++20 library with no mandatory third-party dependency.
+- Includes SPSC, multicast SPMC, blocking MPMC, and mutex-free MPMC queue
+  contracts.
+- Uses deterministic stress validation, ASan/UBSan and TSan build paths, TLA+
+  models, and GenMC protocol artifacts.
+- Emits reproducible JSON benchmark output with payload validation.
+- Explicitly does not claim production readiness, complete formal
+  verification, lock-freedom, or wait-freedom.
 
 ## Queue Contracts
 
