@@ -1,164 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
-  <title id="title">SPMC multicast retained-history ring</title>
-  <desc id="desc">A polished high-level diagram of a single producer publishing into a bounded ring while multiple consumers keep independent cursors.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520" role="img" aria-labelledby="title desc">
+  <title id="title">SPMC retained-history ring semantics</title>
+  <desc id="desc">Two classic ring diagrams showing producer publication into retained storage and independent consumer cursors over the same retained history.</desc>
   <defs>
-    <linearGradient id="page-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#08111f"/>
-      <stop offset="55%" stop-color="#0f172a"/>
-      <stop offset="100%" stop-color="#111827"/>
-    </linearGradient>
-    <linearGradient id="panel-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#111c31"/>
-      <stop offset="100%" stop-color="#0b1220"/>
-    </linearGradient>
-    <linearGradient id="retained-grad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#22d3ee"/>
-      <stop offset="100%" stop-color="#2563eb"/>
-    </linearGradient>
-    <linearGradient id="write-grad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#fbbf24"/>
-      <stop offset="100%" stop-color="#f97316"/>
-    </linearGradient>
-    <linearGradient id="cursor-grad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#c084fc"/>
-      <stop offset="100%" stop-color="#7c3aed"/>
-    </linearGradient>
-    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#020617" flood-opacity="0.42"/>
-    </filter>
-    <filter id="glow-cyan" x="-40%" y="-40%" width="180%" height="180%">
-      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#38bdf8" flood-opacity="0.55"/>
-    </filter>
-    <filter id="glow-orange" x="-40%" y="-40%" width="180%" height="180%">
-      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#fb923c" flood-opacity="0.55"/>
-    </filter>
-    <marker id="arrow-cyan" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
-      <path d="M0,0 L12,4 L0,8 Z" fill="#22d3ee"/>
+    <marker id="arrow-black" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#222"/>
     </marker>
-    <marker id="arrow-violet" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
-      <path d="M0,0 L12,4 L0,8 Z" fill="#a855f7"/>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#1f77b4"/>
     </marker>
-    <marker id="arrow-red" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
-      <path d="M0,0 L12,4 L0,8 Z" fill="#fb7185"/>
+    <marker id="arrow-red" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#b22222"/>
     </marker>
     <style>
-      text { font-family: Inter, Arial, Helvetica, sans-serif; }
-      .title { fill: #f8fafc; font-size: 36px; font-weight: 850; letter-spacing: -0.04em; }
-      .subtitle { fill: #94a3b8; font-size: 17px; font-weight: 500; }
-      .panel-title { fill: #e2e8f0; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
-      .panel-subtitle { fill: #94a3b8; font-size: 13px; font-weight: 600; }
-      .label { fill: #e5e7eb; font-size: 14px; font-weight: 800; }
-      .muted { fill: #94a3b8; font-size: 12px; font-weight: 600; }
-      .tiny { fill: #cbd5e1; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
-      .panel { fill: url(#panel-bg); stroke: #334155; stroke-width: 1.5; }
-      .ring-base { fill: none; stroke: #263247; stroke-width: 36; stroke-linecap: round; }
-      .ring-retained { fill: none; stroke: url(#retained-grad); stroke-width: 36; stroke-linecap: round; filter: url(#glow-cyan); }
-      .ring-write { fill: none; stroke: url(#write-grad); stroke-width: 36; stroke-linecap: round; filter: url(#glow-orange); }
-      .ring-lag { fill: none; stroke: #fb7185; stroke-width: 36; stroke-linecap: round; opacity: 0.7; }
-      .core { fill: #0b1220; stroke: #334155; stroke-width: 1.5; }
-      .callout { fill: #0f172a; stroke: #334155; stroke-width: 1.2; }
-      .callout-cyan { fill: #082f49; stroke: #38bdf8; stroke-width: 1.2; }
-      .callout-orange { fill: #431407; stroke: #fb923c; stroke-width: 1.2; }
-      .callout-violet { fill: #2e1065; stroke: #a855f7; stroke-width: 1.2; }
-      .callout-red { fill: #4c0519; stroke: #fb7185; stroke-width: 1.2; }
-      .arrow-cyan { stroke: #22d3ee; stroke-width: 3; fill: none; marker-end: url(#arrow-cyan); stroke-linecap: round; stroke-linejoin: round; }
-      .arrow-violet { stroke: #a855f7; stroke-width: 3; fill: none; marker-end: url(#arrow-violet); stroke-linecap: round; stroke-linejoin: round; }
-      .arrow-red { stroke: #fb7185; stroke-width: 3; fill: none; marker-end: url(#arrow-red); stroke-linecap: round; stroke-linejoin: round; }
-      .tick { stroke: #64748b; stroke-width: 3; stroke-linecap: round; opacity: 0.75; }
+      text { font-family: Arial, Helvetica, sans-serif; fill: #111; }
+      .title { font-size: 24px; font-weight: 700; }
+      .subtitle { font-size: 14px; fill: #444; }
+      .panel-title { font-size: 16px; font-weight: 700; }
+      .label { font-size: 13px; }
+      .small { font-size: 12px; fill: #444; }
+      .ring-empty { fill: none; stroke: #d7d7d7; stroke-width: 28; stroke-dasharray: 13 8; }
+      .ring-retained { fill: none; stroke: #4aa3df; stroke-width: 28; stroke-dasharray: 13 8; stroke-linecap: butt; }
+      .ring-write { fill: none; stroke: #f28e2b; stroke-width: 28; stroke-dasharray: 13 8; stroke-linecap: butt; }
+      .ring-lag { fill: none; stroke: #e15759; stroke-width: 28; stroke-dasharray: 13 8; stroke-linecap: butt; }
+      .inner { fill: #fff; stroke: #777; stroke-width: 1.4; }
+      .panel { fill: #fff; stroke: #d0d0d0; stroke-width: 1.2; }
+      .box { fill: #f7f7f7; stroke: #555; stroke-width: 1.1; }
+      .legend-box { fill: #fff; stroke: #ccc; stroke-width: 1; }
+      .arrow { stroke: #222; stroke-width: 1.7; fill: none; marker-end: url(#arrow-black); }
+      .arrow-blue { stroke: #1f77b4; stroke-width: 1.8; fill: none; marker-end: url(#arrow-blue); }
+      .arrow-red { stroke: #b22222; stroke-width: 1.8; fill: none; marker-end: url(#arrow-red); }
     </style>
   </defs>
 
-  <rect width="1200" height="680" fill="url(#page-bg)"/>
-  <g opacity="0.18">
-    <path d="M0 92H1200M0 184H1200M0 276H1200M0 368H1200M0 460H1200M0 552H1200" stroke="#334155" stroke-width="1"/>
-    <path d="M120 0V680M240 0V680M360 0V680M480 0V680M600 0V680M720 0V680M840 0V680M960 0V680M1080 0V680" stroke="#334155" stroke-width="1"/>
-  </g>
+  <rect width="1000" height="520" fill="#fff"/>
+  <text class="title" x="40" y="42">SPMC retained-history ring semantics</text>
+  <text class="subtitle" x="40" y="66">A single producer publishes into bounded storage; registered consumers keep independent cursors.</text>
 
-  <text id="diagram-title" class="title" x="68" y="74">SPMC multicast retained-history</text>
-  <text class="subtitle" x="70" y="104">One producer writes a sequence stream; each consumer advances its own cursor through the retained ring.</text>
+  <rect class="panel" x="48" y="96" width="420" height="310" rx="6"/>
+  <rect class="panel" x="532" y="96" width="420" height="310" rx="6"/>
 
-  <rect class="panel" x="64" y="146" width="506" height="438" rx="28" filter="url(#soft-shadow)"/>
-  <rect class="panel" x="630" y="146" width="506" height="438" rx="28" filter="url(#soft-shadow)"/>
+  <text class="panel-title" x="72" y="130">Publication state</text>
+  <text class="small" x="72" y="150">The producer advances the newest retained sequence.</text>
 
-  <g aria-label="Producer publication panel">
-    <text class="panel-title" x="104" y="194">1. publish into bounded storage</text>
-    <text class="panel-subtitle" x="104" y="218">fixed capacity, explicit write position, no unbounded growth</text>
+  <circle class="ring-empty" cx="258" cy="254" r="94"/>
+  <path class="ring-retained" d="M258 160 A94 94 0 1 1 177 302"/>
+  <path class="ring-write" d="M352 254 A94 94 0 0 1 326 321"/>
+  <circle class="inner" cx="258" cy="254" r="58"/>
+  <text class="label" x="229" y="247">retained</text>
+  <text class="label" x="232" y="266">window</text>
 
-    <circle class="ring-base" cx="316" cy="374" r="118"/>
-    <path class="ring-retained" d="M316 256 A118 118 0 1 1 212 430"/>
-    <path class="ring-write" d="M423 423 A118 118 0 0 1 434 374"/>
-    <circle class="core" cx="316" cy="374" r="70"/>
+  <rect class="box" x="78" y="226" width="112" height="44" rx="5"/>
+  <text class="label" x="104" y="253">producer</text>
+  <path class="arrow" d="M190 240 C238 202 304 198 342 244"/>
 
-    <g transform="translate(316 374)">
-      <line class="tick" x1="0" y1="-154" x2="0" y2="-134"/>
-      <line class="tick" x1="77" y1="-133" x2="67" y2="-116"/>
-      <line class="tick" x1="133" y1="-77" x2="116" y2="-67"/>
-      <line class="tick" x1="154" y1="0" x2="134" y2="0"/>
-      <line class="tick" x1="133" y1="77" x2="116" y2="67"/>
-      <line class="tick" x1="77" y1="133" x2="67" y2="116"/>
-      <line class="tick" x1="0" y1="154" x2="0" y2="134"/>
-      <line class="tick" x1="-77" y1="133" x2="-67" y2="116"/>
-      <line class="tick" x1="-133" y1="77" x2="-116" y2="67"/>
-      <line class="tick" x1="-154" y1="0" x2="-134" y2="0"/>
-      <line class="tick" x1="-133" y1="-77" x2="-116" y2="-67"/>
-      <line class="tick" x1="-77" y1="-133" x2="-67" y2="-116"/>
-    </g>
+  <text class="label" x="92" y="178">oldest retained</text>
+  <path class="arrow-blue" d="M170 180 C186 178 202 176 218 176"/>
 
-    <text class="label" x="282" y="362">retained</text>
-    <text class="label" x="285" y="383">window</text>
-    <text class="muted" x="266" y="405">latest history</text>
+  <text class="label" x="330" y="178">newest</text>
+  <text class="label" x="330" y="194">published</text>
+  <path class="arrow" d="M350 200 C356 216 358 230 352 242"/>
 
-    <rect class="callout-orange" x="116" y="276" width="154" height="58" rx="16"/>
-    <text class="label" x="142" y="300">producer</text>
-    <text class="muted" x="142" y="320">next publish</text>
-    <path class="arrow-cyan" d="M270 305 C316 302 380 326 416 364"/>
+  <text class="label" x="340" y="346">write slot</text>
+  <path class="arrow" d="M338 336 C335 324 331 318 326 312"/>
 
-    <rect class="callout-cyan" x="360" y="502" width="150" height="44" rx="14"/>
-    <text class="tiny" x="390" y="529">retained slots</text>
-    <rect class="callout-orange" x="146" y="502" width="150" height="44" rx="14"/>
-    <text class="tiny" x="176" y="529">write slot</text>
-  </g>
+  <text class="panel-title" x="556" y="130">Independent consumer cursors</text>
+  <text class="small" x="556" y="150">A read does not remove the message for other consumers.</text>
 
-  <g aria-label="Consumer cursor panel">
-    <text class="panel-title" x="670" y="194">2. consumers read independently</text>
-    <text class="panel-subtitle" x="670" y="218">independent cursors over the same retained sequence</text>
+  <circle class="ring-empty" cx="742" cy="254" r="94"/>
+  <path class="ring-lag" d="M648 254 A94 94 0 0 1 675 187"/>
+  <path class="ring-retained" d="M675 187 A94 94 0 1 1 822 304"/>
+  <path class="ring-write" d="M836 254 A94 94 0 0 1 810 321"/>
+  <circle class="inner" cx="742" cy="254" r="58"/>
+  <text class="label" x="717" y="247">same</text>
+  <text class="label" x="700" y="266">history</text>
 
-    <circle class="ring-base" cx="884" cy="374" r="118"/>
-    <path class="ring-lag" d="M766 374 A118 118 0 0 1 794 288"/>
-    <path class="ring-retained" d="M794 288 A118 118 0 1 1 966 451"/>
-    <path class="ring-write" d="M991 401 A118 118 0 0 1 1002 374"/>
-    <circle class="core" cx="884" cy="374" r="70"/>
+  <text class="label" x="870" y="180">C0 latest</text>
+  <path class="arrow-blue" d="M864 182 C825 191 807 206 791 225"/>
 
-    <text class="label" x="854" y="362">cursor</text>
-    <text class="label" x="850" y="383">ownership</text>
-    <text class="muted" x="831" y="405">per consumer</text>
+  <text class="label" x="872" y="322">C1 behind</text>
+  <path class="arrow-blue" d="M864 318 C827 312 807 306 789 297"/>
 
-    <path class="arrow-violet" d="M1036 266 C1004 298 974 323 952 352"/>
-    <rect class="callout-violet" x="902" y="242" width="162" height="46" rx="14"/>
-    <text class="tiny" x="942" y="270">C0 latest</text>
+  <text class="label" x="566" y="335">C2 lagged</text>
+  <path class="arrow-red" d="M637 328 C652 304 655 282 649 259"/>
 
-    <path class="arrow-violet" d="M1032 492 C1002 460 968 438 934 421"/>
-    <rect class="callout-violet" x="906" y="496" width="164" height="46" rx="14"/>
-    <text class="tiny" x="944" y="524">C1 behind</text>
+  <rect class="legend-box" x="216" y="430" width="568" height="46" rx="5"/>
+  <rect x="244" y="446" width="26" height="12" fill="#4aa3df"/>
+  <text class="small" x="278" y="457">retained history</text>
+  <rect x="408" y="446" width="26" height="12" fill="#f28e2b"/>
+  <text class="small" x="442" y="457">write in progress</text>
+  <rect x="604" y="446" width="26" height="12" fill="#e15759"/>
+  <text class="small" x="638" y="457">lagged cursor</text>
 
-    <path class="arrow-red" d="M720 468 C750 434 761 398 767 374"/>
-    <rect class="callout-red" x="696" y="484" width="178" height="46" rx="14"/>
-    <text class="tiny" x="734" y="512">C2 lagged</text>
-
-    <rect class="callout" x="690" y="268" width="154" height="62" rx="16"/>
-    <text class="label" x="724" y="294">multicast</text>
-    <text class="muted" x="724" y="314">many observations</text>
-  </g>
-
-  <g aria-label="Footer legend">
-    <rect x="190" y="610" width="820" height="38" rx="19" fill="#020617" opacity="0.72" stroke="#1e293b"/>
-    <circle cx="232" cy="629" r="7" fill="#38bdf8"/>
-    <text class="tiny" x="250" y="633">retained history</text>
-    <circle cx="390" cy="629" r="7" fill="#fb923c"/>
-    <text class="tiny" x="408" y="633">write in progress</text>
-    <circle cx="570" cy="629" r="7" fill="#a855f7"/>
-    <text class="tiny" x="588" y="633">consumer cursor</text>
-    <circle cx="746" cy="629" r="7" fill="#fb7185"/>
-    <text class="tiny" x="764" y="633">consumer lag</text>
-  </g>
+  <text class="small" x="218" y="500">Contract: multicast reads observe retained messages; each consumer advances its own cursor.</text>
 </svg>

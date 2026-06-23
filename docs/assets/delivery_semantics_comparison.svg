@@ -1,109 +1,66 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520" role="img" aria-labelledby="title desc">
   <title id="title">Queue delivery accounting</title>
-  <desc id="desc">A polished high-level accounting chart showing why work-sharing pops and multicast observations are different benchmark units.</desc>
-  <defs>
-    <linearGradient id="page-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#08111f"/>
-      <stop offset="55%" stop-color="#0f172a"/>
-      <stop offset="100%" stop-color="#111827"/>
-    </linearGradient>
-    <linearGradient id="panel-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#111c31"/>
-      <stop offset="100%" stop-color="#0b1220"/>
-    </linearGradient>
-    <linearGradient id="bar-blue" x1="0" y1="1" x2="0" y2="0">
-      <stop offset="0%" stop-color="#1d4ed8"/>
-      <stop offset="100%" stop-color="#60a5fa"/>
-    </linearGradient>
-    <linearGradient id="bar-orange" x1="0" y1="1" x2="0" y2="0">
-      <stop offset="0%" stop-color="#ea580c"/>
-      <stop offset="100%" stop-color="#fbbf24"/>
-    </linearGradient>
-    <linearGradient id="bar-violet" x1="0" y1="1" x2="0" y2="0">
-      <stop offset="0%" stop-color="#6d28d9"/>
-      <stop offset="100%" stop-color="#c084fc"/>
-    </linearGradient>
-    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#020617" flood-opacity="0.42"/>
-    </filter>
-    <filter id="bar-glow" x="-35%" y="-35%" width="170%" height="170%">
-      <feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#38bdf8" flood-opacity="0.24"/>
-    </filter>
-    <style>
-      text { font-family: Inter, Arial, Helvetica, sans-serif; }
-      .title { fill: #f8fafc; font-size: 36px; font-weight: 850; letter-spacing: -0.04em; }
-      .subtitle { fill: #94a3b8; font-size: 17px; font-weight: 500; }
-      .panel { fill: url(#panel-bg); stroke: #334155; stroke-width: 1.5; }
-      .axis { stroke: #64748b; stroke-width: 2; }
-      .grid { stroke: #334155; stroke-width: 1; opacity: 0.8; }
-      .label { fill: #e5e7eb; font-size: 15px; font-weight: 800; }
-      .muted { fill: #94a3b8; font-size: 13px; font-weight: 600; }
-      .tiny { fill: #cbd5e1; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
-      .value { fill: #ffffff; font-size: 28px; font-weight: 900; }
-      .chip { fill: #020617; stroke: #334155; stroke-width: 1.2; }
-      .warning { fill: #431407; stroke: #fb923c; stroke-width: 1.4; }
-      .blue { fill: url(#bar-blue); filter: url(#bar-glow); }
-      .orange { fill: url(#bar-orange); filter: url(#bar-glow); }
-      .violet { fill: url(#bar-violet); filter: url(#bar-glow); }
-    </style>
-  </defs>
+  <desc id="desc">A clean scientific bar chart showing that work-sharing queues count exclusive pops while multicast SPMC counts aggregate consumer observations.</desc>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill: #111; }
+    .title { font-size: 24px; font-weight: 700; }
+    .subtitle { font-size: 14px; fill: #444; }
+    .axis { stroke: #222; stroke-width: 1.4; }
+    .grid { stroke: #e1e1e1; stroke-width: 1; }
+    .tick { font-size: 12px; fill: #333; }
+    .label { font-size: 13px; }
+    .label-bold { font-size: 13px; font-weight: 700; }
+    .caption { font-size: 12px; fill: #444; }
+    .bar-work { fill: #4e79a7; }
+    .bar-spmc { fill: #f28e2b; }
+    .bar-unique { fill: #59a14f; }
+    .note { fill: #fff; stroke: #bbb; stroke-width: 1; }
+  </style>
 
-  <rect width="1200" height="680" fill="url(#page-bg)"/>
-  <g opacity="0.18">
-    <path d="M0 92H1200M0 184H1200M0 276H1200M0 368H1200M0 460H1200M0 552H1200" stroke="#334155" stroke-width="1"/>
-    <path d="M120 0V680M240 0V680M360 0V680M480 0V680M600 0V680M720 0V680M840 0V680M960 0V680M1080 0V680" stroke="#334155" stroke-width="1"/>
-  </g>
+  <rect width="1000" height="520" fill="#fff"/>
+  <text class="title" x="48" y="42">Queue delivery accounting</text>
+  <text class="subtitle" x="48" y="66">Illustrative units for one publication with three registered consumers; not a throughput result.</text>
 
-  <text class="title" x="68" y="74">Delivery units are not interchangeable</text>
-  <text class="subtitle" x="70" y="104">One publication can mean one exclusive pop, or many multicast observations. The benchmark reports them separately.</text>
+  <line class="grid" x1="120" y1="335" x2="780" y2="335"/>
+  <line class="grid" x1="120" y1="260" x2="780" y2="260"/>
+  <line class="grid" x1="120" y1="185" x2="780" y2="185"/>
+  <line class="grid" x1="120" y1="110" x2="780" y2="110"/>
 
-  <rect class="panel" x="64" y="146" width="754" height="438" rx="28" filter="url(#soft-shadow)"/>
-  <rect class="panel" x="854" y="146" width="282" height="438" rx="28" filter="url(#soft-shadow)"/>
+  <line class="axis" x1="120" y1="410" x2="780" y2="410"/>
+  <line class="axis" x1="120" y1="110" x2="120" y2="410"/>
 
-  <g aria-label="Accounting chart">
-    <line class="grid" x1="150" y1="230" x2="760" y2="230"/>
-    <line class="grid" x1="150" y1="315" x2="760" y2="315"/>
-    <line class="grid" x1="150" y1="400" x2="760" y2="400"/>
-    <line class="axis" x1="150" y1="485" x2="760" y2="485"/>
-    <line class="axis" x1="150" y1="196" x2="150" y2="485"/>
+  <text class="tick" x="92" y="414">0</text>
+  <text class="tick" x="88" y="339">1x</text>
+  <text class="tick" x="88" y="264">2x</text>
+  <text class="tick" x="88" y="189">3x</text>
+  <text class="tick" x="88" y="114">4x</text>
 
-    <text class="tiny" x="114" y="489">0</text>
-    <text class="tiny" x="110" y="404">1x</text>
-    <text class="tiny" x="110" y="319">2x</text>
-    <text class="tiny" x="110" y="234">3x</text>
-    <text class="tiny" x="360" y="526">observations per publication</text>
+  <rect class="bar-work" x="190" y="335" width="110" height="75"/>
+  <rect class="bar-spmc" x="410" y="185" width="110" height="225"/>
+  <rect class="bar-unique" x="630" y="335" width="110" height="75"/>
 
-    <rect class="blue" x="210" y="400" width="120" height="85" rx="16"/>
-    <text class="value" x="254" y="453">1x</text>
-    <text class="label" x="190" y="552">work-sharing</text>
-    <text class="muted" x="187" y="572">one exclusive pop</text>
+  <text class="label-bold" x="231" y="378" fill="#fff">1x</text>
+  <text class="label-bold" x="451" y="306" fill="#fff">3x</text>
+  <text class="label-bold" x="671" y="378" fill="#fff">1x</text>
 
-    <rect class="orange" x="416" y="230" width="120" height="255" rx="16"/>
-    <text class="value" x="460" y="368">3x</text>
-    <text class="label" x="396" y="552">multicast SPMC</text>
-    <text class="muted" x="382" y="572">three observations</text>
+  <text class="label-bold" x="178" y="440">work-sharing pop</text>
+  <text class="caption" x="182" y="461">one consumer removes item</text>
 
-    <rect class="violet" x="622" y="400" width="120" height="85" rx="16"/>
-    <text class="value" x="666" y="453">1x</text>
-    <text class="label" x="624" y="552">unique IDs</text>
-    <text class="muted" x="597" y="572">same publication</text>
-  </g>
+  <text class="label-bold" x="386" y="440">SPMC observations</text>
+  <text class="caption" x="388" y="461">three consumers observe it</text>
 
-  <g aria-label="Explanation cards">
-    <text class="label" x="894" y="202">How to read it</text>
-    <rect class="chip" x="890" y="226" width="210" height="80" rx="18"/>
-    <text class="tiny" x="916" y="255">WORK-SHARING</text>
-    <text class="muted" x="916" y="278">successful pop consumes</text>
-    <text class="muted" x="916" y="298">one queued item</text>
+  <text class="label-bold" x="618" y="440">unique publication IDs</text>
+  <text class="caption" x="631" y="461">same original message</text>
 
-    <rect class="chip" x="890" y="326" width="210" height="80" rx="18"/>
-    <text class="tiny" x="916" y="355">MULTICAST SPMC</text>
-    <text class="muted" x="916" y="378">each consumer can observe</text>
-    <text class="muted" x="916" y="398">the same sequence</text>
+  <text class="label" transform="translate(48 322) rotate(-90)">observations per publication</text>
 
-    <rect class="warning" x="890" y="436" width="210" height="88" rx="20"/>
-    <text class="tiny" x="916" y="466">NOT A THROUGHPUT RANKING</text>
-    <text class="muted" x="916" y="490">The chart shows accounting</text>
-    <text class="muted" x="916" y="510">units, not measured speed.</text>
-  </g>
+  <rect class="note" x="808" y="160" width="150" height="146" rx="4"/>
+  <text class="label-bold" x="828" y="190">Interpretation</text>
+  <text class="caption" x="828" y="218">Work-sharing and</text>
+  <text class="caption" x="828" y="236">multicast measure</text>
+  <text class="caption" x="828" y="254">different units.</text>
+  <text class="caption" x="828" y="282">The benchmark keeps</text>
+  <text class="caption" x="828" y="300">those fields separate.</text>
+
+  <text class="caption" x="120" y="500">Bars show delivery accounting only. They are not measured throughput and are not a queue ranking.</text>
 </svg>
