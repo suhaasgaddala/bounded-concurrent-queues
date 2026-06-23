@@ -51,6 +51,11 @@ still explore different interleavings.
 Sanitizers do not prove logical ordering, no loss, no duplication, or universal
 race freedom. TSan should be run separately from ASan.
 
+GitHub Actions runs separate ASan/UBSan and TSan Debug CTest jobs using the
+project's sanitizer CMake options. Benchmarks are disabled in those jobs so the
+sanitizer signal stays focused on tests, package consumption, and stress
+smokes.
+
 ### Bounded model checking
 
 The `verification/tla` models split queue operations at their ownership and

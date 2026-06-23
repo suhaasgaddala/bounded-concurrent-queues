@@ -337,7 +337,8 @@ itself contains no test mutex or validation allocation.
 
 ASan/UBSan and TSan are separate supported build configurations. Sanitizers
 inspect only executed schedules and do not prove ordering, no loss, no
-duplication, linearizability, progress, or wraparound behavior.
+duplication, linearizability, progress, or wraparound behavior. Public CI runs
+separate ASan/UBSan and TSan Debug CTest jobs with benchmarks disabled.
 
 ### 13.4 Bounded model checking
 
@@ -406,10 +407,11 @@ confidence interval, or ranking claim is produced.
 
 GitHub Actions builds and runs CTest on Ubuntu in Debug and Release. Because
 stress and benchmark smokes are registered with CTest, the default jobs exercise
-them along with package consumption. A separate verification workflow runs the
-pinned TLC models, GenMC protocol harnesses, and synchronization negative
-controls. CI does not currently include sanitizer jobs, Windows/macOS, long
-stress, performance thresholds, coverage, static analysis, or release
+them along with package consumption. The CI workflow also runs separate
+ASan/UBSan and TSan Debug CTest jobs with benchmarks disabled. A separate
+verification workflow runs the pinned TLC models, GenMC protocol harnesses, and
+synchronization negative controls. CI does not currently include Windows/macOS,
+long stress, performance thresholds, coverage, static analysis, or release
 packaging.
 
 ## 17. Design Boundaries
@@ -566,7 +568,6 @@ Before changing synchronization:
 
 ### P1: Portability and integration
 
-- Add reliable sanitizer CI jobs.
 - Add macOS and Windows compiler coverage.
 - Validate optional Boost scenarios in a Boost-equipped job.
 - Test declared minimum CMake and installed-target warning/sanitizer behavior.

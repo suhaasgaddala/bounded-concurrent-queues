@@ -24,3 +24,39 @@ jobs:
         run: cmake --build build --parallel 2
       - name: Test
         run: ctest --test-dir build --output-on-failure
+
+  asan-ubsan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure
+        run: >-
+          cmake -S . -B build-asan-ubsan
+          -DCMAKE_BUILD_TYPE=Debug
+          -DORBITQUEUE_BUILD_TESTS=ON
+          -DORBITQUEUE_BUILD_BENCHMARKS=OFF
+          -DORBITQUEUE_ENABLE_SANITIZERS=ON
+          -DORBITQUEUE_SANITIZERS=address,undefined
+      - name: Build
+        run: cmake --build build-asan-ubsan --parallel 2
+      - name: Test
+        run: ctest --test-dir build-asan-ubsan --output-on-failure
+
+  tsan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure
+        run: >-
+          cmake -S . -B build-tsan
+          -DCMAKE_BUILD_TYPE=Debug
+          -DORBITQUEUE_BUILD_TESTS=ON
+          -DORBITQUEUE_BUILD_BENCHMARKS=OFF
+          -DORBITQUEUE_ENABLE_SANITIZERS=ON
+          -DORBITQUEUE_SANITIZERS=thread
+      - name: Build
+        run: cmake --build build-tsan --parallel 2
+      - name: Test
+        run: ctest --test-dir build-tsan --output-on-failure
