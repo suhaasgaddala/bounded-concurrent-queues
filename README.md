@@ -17,8 +17,9 @@ multicast queue and the mutex-free MPMC and mutex-backed blocking baselines.
 The project studies bounded in-memory queues with named producer and consumer
 contracts, fixed-size payload storage where applicable, explicit operation
 results, and benchmark scenarios that preserve the meaning of each delivery
-model. Correctness checks and synchronization rationale are part of the design,
-not inferred from throughput.
+model. Correctness checks — including TLA+ and GenMC model checking,
+ThreadSanitizer, and deterministic seeded stress — and synchronization rationale
+are part of the design, not inferred from throughput.
 
 ## Why bounded queues?
 
