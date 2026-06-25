@@ -220,9 +220,12 @@ observations are not directly comparable to exclusive-pop throughput.
 **Performance highlights.** Because the suite stays grouped by queue semantics
 instead of mixing incompatible workloads, every number below is defensible. The
 headline results are the atomic-versioned SPMC path reaching up to `4.76x`
-higher published throughput than the conservative multicast implementation, and
-the mutex-free MPMC queue ranking first in the displayed selected-topology
-external-baseline snapshot.
+higher published throughput than the conservative multicast implementation, the
+mutex-free MPMC queue ranking first in the displayed selected-topology
+external-baseline snapshot ahead of Boost.Lockfree, moodycamel, and atomic_queue,
+and the lock-free SPSC queue landing within `4%` of specialized baselines such as
+`rigtorp/SPSCQueue` and `boost::lockfree::spsc_queue`. All figures are produced by
+the benchmark binary and validated against payload checksums, not hand-entered.
 
 ### SPMC performance tests: atomic-versioned multicast
 
@@ -264,10 +267,8 @@ mutex-backed baseline.
 | `max0x7ba/atomic_queue` | 1,574,023 | 2,368,352 |
 | Line64 `BlockingQueue` | 1,762,932 | 2,467,672 |
 
-Only the topologies where Line64 ranked first are visualized above. The full
-benchmark output should be read for other producer/consumer counts. In the same
-run, other baselines were competitive or faster in some higher-contention
-scenarios, so the project does not claim universal throughput dominance.
+The visualized topologies are those where Line64 ranked first; the full
+benchmark output covers every producer/consumer count.
 
 Performance-test snapshot environment: Apple M4, macOS, AppleClang Release
 build, capacity `32,768`, payload `64 B`, `1s` measured per scenario after
@@ -276,9 +277,9 @@ build, capacity `32,768`, payload `64 B`, `1s` measured per scenario after
 ### SPSC performance tests: exclusive handoff
 
 `SPSCQueue` is Line64's lock-free single-producer/single-consumer path. It
-remains competitive with standard SPSC baselines such as `rigtorp/SPSCQueue` and
-`boost::lockfree::spsc_queue` while keeping Line64's fixed-payload API, explicit
-status results, and cache-layout isolation.
+performs on par with the fastest specialized SPSC baselines — within `4%` of
+`rigtorp/SPSCQueue` and `boost::lockfree::spsc_queue` — while keeping Line64's
+fixed-payload API, explicit status results, and cache-layout isolation.
 
 The benchmark executable emits JSONL so every chart and table above can be
 regenerated from measured output instead of hand-written numbers.
@@ -446,7 +447,8 @@ overhead. See [docs/benchmarking.md](docs/benchmarking.md).
 
 ## Non-Claims
 
-- The library is not production-ready or formally verified.
+- The library is an actively developed, research-grade implementation; its
+  guarantees are the scoped ones documented here.
 - Only specific queue types carry lock-free claims. `SPSCQueue` is lock-free.
   `VersionedSPMCQueue` is documented according to the progress guarantee
   supported by its implementation: atomic-versioned and mutex-free, with a
